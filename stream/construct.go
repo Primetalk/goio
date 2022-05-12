@@ -15,6 +15,21 @@ func (es emptyStream[A])Step() (io.IO[StepResult[A]]) {
 }
 
 
+func Eval[A any](io io.IO[A]) Stream[A] {
+	return evalImpl[A]{
+		io: io,
+	}
+}
+
+type evalImpl[A any] struct {
+	io io.IO[A]
+}
+
+func (e evalImpl[A])Step() (io.IO[StepResult[A]]) {
+	return io.Map(e.io, func(a A) StepResult[A]{
+		return NewStepResult(a, Empty[A]())
+	})
+}
 
 
 func Lift[A any](a A) Stream[A] {
@@ -78,4 +93,8 @@ func Unfold[A any](zero A, f func(A) A) Stream[A] {
 		r := f(s)
 		return r, r
 	})
+}
+
+func FromSideEffectfulFunction[A any](f func ()(A,error)) Stream[A] {
+	 return Repeat(Eval(io.Eval(f)))
 }

@@ -42,23 +42,6 @@ func NewStepResultFinished[A any]() StepResult[A] {
 	}
 }
 
-func Eval[A any](io io.IO[A]) Stream[A] {
-	return evalImpl[A]{
-		io: io,
-	}
-}
-
-type evalImpl[A any] struct {
-	io io.IO[A]
-}
-
-func (e evalImpl[A])Step() (io.IO[StepResult[A]]) {
-	return io.Map(e.io, func(a A) StepResult[A]{
-		return NewStepResult(a, Empty[A]())
-	})
-}
-func (e evalImpl[A])IsFinished() io.IO[bool] { return io.Lift(false) }
-
 
 
 func MapEval[A any, B any](stm Stream[A], f func(a A)io.IO[B]) Stream[B] {
