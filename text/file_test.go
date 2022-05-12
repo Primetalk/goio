@@ -18,9 +18,8 @@ func TestStream(t *testing.T) {
 	data := []byte(exampleText)
 	r := bytes.NewReader(data)
 	strings := text.ReadLines(r)
-	stream.Map strings
-	empty := stream.Empty[int]()
-	_, err := io.UnsafeRunSync(stream.DrainAll(empty))
+	lens := stream.Map(strings, func (s string) int {return len(s)})
+	_, err := io.UnsafeRunSync(stream.DrainAll(lens))
 	assert.Equal(t, err, nil)
 	stream10_12 := stream.LiftMany(10, 11, 12)
 	stream20_24 := stream.Map(stream10_12, func(i int)int { return i * 2 })
