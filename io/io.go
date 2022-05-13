@@ -26,6 +26,20 @@ func UnsafeRunSync[A any](io IO[A]) (A, error) {
 	return io.unsafeRun()
 }
 
+func Delay[A any](f func()IO[A]) IO[A] {
+	return delayImpl[A]{
+		f: f,
+	}
+}
+type delayImpl[A any] struct {
+	f func()IO[A]
+}
+
+func (i delayImpl[A])unsafeRun()(a A, err error) {
+	defer RecoverToErrorVar("Delay.unsafeRun", &err)
+	return i.f().unsafeRun()
+}
+
 func Eval[A any](f func () (A, error)) IO[A] {
 	return evalImpl[A]{
 		f: f,
@@ -120,4 +134,33 @@ func Lift[A any](a A) IO[A] {
 func Fail[A any](err error) IO[A] {
 	var a A
 	return LiftPair(a, err)
+}
+
+func Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) IO[B]{
+	return Delay(func () IO[B] {
+		var a A
+		var err error
+		a, err = io.unsafeRun()
+		if err == nil {
+			return f(a)			
+		} else {
+			return recover(err)
+		}
+	})
+}
+
+func FoldErr[A any, B any](io IO[A], f func(a A) (B, error), recover func (error)(B, error)) IO[B]{
+	return Eval(func () (b B, err error) {
+		var a A
+		a, err = io.unsafeRun()
+		if err == nil {
+			return f(a)			
+		} else {
+			return recover(err)
+		}
+	})
+}
+
+func Recover[A any](io IO[A], recover func(err error)IO[A])IO[A] {
+	return Fold(io, Lift[A], recover)
 }
