@@ -35,3 +35,20 @@ func TestGenerate(t *testing.T) {
 	assert.Equal(t, nil, err)
 	assert.Equal(t, 1024, res)
 }
+
+func TestDrainAll(t *testing.T) {
+	nats := stream.Unfold(0, func(s int) int{
+		return s + 1
+	})
+	nats10 := stream.Take(nats, 10)
+	results := []int{}
+	natsAppend := stream.MapEval(nats10, func(a int) io.IO[int] {
+		return io.Eval(func() (int, error) {
+			results = append(results, a)
+			return a, nil
+		})
+	})
+	_, err := io.UnsafeRunSync(stream.DrainAll(natsAppend))
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, results, []int{1,2,3,4,5,6,7,8,9,10})
+}

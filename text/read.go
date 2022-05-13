@@ -11,7 +11,7 @@ func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 	return readByteChunksImpl{
 		reader: reader,
 		chunkSize: chunkSize,
-	}
+	}.Step
 }
 
 type readByteChunksImpl struct {
@@ -31,7 +31,7 @@ func (rb readByteChunksImpl)Step() (io.IO[stream.StepResult[[]byte]]) {
 			if cnt == 0 {
 				res = stream.NewStepResultEmpty(stream.Empty[[]byte]())
 			} else {
-				res = stream.NewStepResult[[]byte](bytes, rb)	
+				res = stream.NewStepResult(bytes, rb.Step)	
 			}
 		}
 		return

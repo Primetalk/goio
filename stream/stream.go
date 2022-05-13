@@ -2,13 +2,8 @@ package stream
 
 import "github.com/primetalk/goio/io"
 
-type Stream[A any] interface {
-	// step performs a single step in the state machine.
-	Step() (io.IO[StepResult[A]])
-}
-
-
-
+// Stream is modelled as a function that performs a single step in the state machine.
+type Stream[A any] func() (io.IO[StepResult[A]])
 
 
 type StepResult[A any] struct {
@@ -48,7 +43,7 @@ func MapEval[A any, B any](stm Stream[A], f func(a A)io.IO[B]) Stream[B] {
 	return mapEvalImpl[A, B]{
 		stm: stm,
 		f: f,
-	}
+	}.Step
 }
 
 type mapEvalImpl[A any, B any] struct {
@@ -58,7 +53,7 @@ type mapEvalImpl[A any, B any] struct {
 
 func (e mapEvalImpl[A, B])Step() (io.IO[StepResult[B]]) {
 	return io.FlatMap(
-		e.stm.Step(), 
+		e.stm(), 
 		func(sra StepResult[A]) io.IO[StepResult[B]] {
 			if sra.IsFinished {
 				return io.Lift(NewStepResultFinished[B]())
@@ -85,7 +80,7 @@ func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
 	return andThenImpl[A]{
 		stm1: stm1,
 		stm2: stm2,
-	}
+	}.Step
 }
 
 
@@ -93,7 +88,7 @@ func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 	return andThenImpl[A]{
 		stm1: stm1,
 		stm2: func() Stream[A] {return stm2},
-	}
+	}.Step
 }
 
 type andThenImpl[A any] struct {
@@ -103,9 +98,9 @@ type andThenImpl[A any] struct {
 
 
 func (a andThenImpl[A])Step() (io.IO[StepResult[A]]) {
-	return  io.FlatMap(a.stm1.Step(), func (sra StepResult[A]) io.IO[StepResult[A]]{
+	return  io.FlatMap(a.stm1(), func (sra StepResult[A]) io.IO[StepResult[A]]{
 		if sra.IsFinished {
-			return a.stm2().Step()
+			return a.stm2()()
 		} else {
 			return io.Lift(StepResult[A]{
 				Value: sra.Value,
@@ -126,7 +121,7 @@ func FlatMap[A any, B any](stm Stream[A], f func (a A) Stream[B]) Stream[B] {
 	return flatMapEvalImpl[A, B]{
 		stm: stm,
 		f: f,
-	}
+	}.Step
 }
 
 type flatMapEvalImpl[A any, B any] struct {
@@ -136,14 +131,14 @@ type flatMapEvalImpl[A any, B any] struct {
 
 func (e flatMapEvalImpl[A, B])Step() (io.IO[StepResult[B]]) {
 	return io.FlatMap(
-		e.stm.Step(), 
+		e.stm(), 
 		func(sra StepResult[A]) io.IO[StepResult[B]] {
 			if sra.IsFinished {
 				return io.Lift(NewStepResultFinished[B]())
 			} else if sra.HasValue {
 				stmb1 := e.f(sra.Value)
 				stmb := AndThenLazy(stmb1, func() Stream[B]{return FlatMap(sra.Continuation, e.f)})
-				return stmb.Step()
+				return stmb()
 			} else {
 				return io.Lift(NewStepResultEmpty(FlatMap(sra.Continuation, e.f)))
 			}
@@ -157,7 +152,8 @@ func StateFlatMap[A any, B any, S any](stm Stream[A], zero S, f func (a A, s S) 
 		stm: stm,
 		zero: zero,
 		f: f,
-	}
+		onFinish: func (S) Stream[B] { return Empty[B]()},
+	}.Step
 }
 
 
@@ -165,18 +161,19 @@ type stateFlatMapImpl[A any, B any, S any] struct {
 	stm Stream[A]
 	zero S
 	f func (a A, s S) (S, Stream[B])
+	onFinish func (s S) (Stream[B])
 }
 
 func (e stateFlatMapImpl[A, B, S])Step() (io.IO[StepResult[B]]) {
 	return io.FlatMap(
-		e.stm.Step(), 
+		e.stm(), 
 		func(sra StepResult[A]) (iores io.IO[StepResult[B]]) {
 			if sra.IsFinished {
-				iores = io.Lift(NewStepResultFinished[B]())
+				iores = io.Lift(NewStepResultEmpty(e.onFinish(e.zero)))
 			} else if sra.HasValue {
 				st, stmb1 := e.f(sra.Value, e.zero)
 				stmb := AndThenLazy(stmb1, func() Stream[B]{return StateFlatMap(sra.Continuation, st, e.f)})
-				iores = stmb.Step()
+				iores = stmb()
 			} else {
 				iores = io.Lift(NewStepResultEmpty(StateFlatMap(sra.Continuation, e.zero, e.f)))
 			}
@@ -189,7 +186,7 @@ func Filter[A any](stm Stream[A], f func(A)bool) Stream[A] {
 	return filterImpl[A]{
 		stm: stm,
 		f: f,
-	}
+	}.Step
 }
 
 
@@ -199,7 +196,7 @@ type filterImpl[A any] struct {
 }
 
 func (e filterImpl[A])Step() (io.IO[StepResult[A]]) {
-	return io.Map(e.stm.Step(),
+	return io.Map(e.stm(),
 		func (sra StepResult[A]) StepResult[A] {
 			if sra.IsFinished {
 				return NewStepResultFinished[A]()

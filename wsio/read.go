@@ -9,12 +9,13 @@ import (
 	"github.com/primetalk/goio/stream"
 )
 
+// FromWebSocket constructs a stream from ReadWriter
 func FromWebSocket(r fio.ReadWriter, side ws.State, chunkSize int) stream.Stream[[]byte] {
 	return fromWebSocketImpl{
 		r: r,
 		chunkSize: chunkSize,
 		side:  side,
-	}
+	}.Step
 }
 
 type fromWebSocketImpl struct {
@@ -34,7 +35,7 @@ func (i fromWebSocketImpl)Step() (io.IO[stream.StepResult[[]byte]]) {
 			if isFinished {
 				cont = stream.Empty[[]byte]()
 			} else {
-				cont = i
+				cont = i.Step
 			}
 			sr = stream.NewStepResult(data, cont)
 		}

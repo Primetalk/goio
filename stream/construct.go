@@ -5,7 +5,7 @@ import "github.com/primetalk/goio/io"
 
 
 func Empty[A any]()Stream[A]{
-	return emptyStream[A]{}
+	return emptyStream[A]{}.Step
 }
 
 type emptyStream[A any] struct {}
@@ -18,7 +18,7 @@ func (es emptyStream[A])Step() (io.IO[StepResult[A]]) {
 func Eval[A any](io io.IO[A]) Stream[A] {
 	return evalImpl[A]{
 		io: io,
-	}
+	}.Step
 }
 
 type evalImpl[A any] struct {
@@ -44,7 +44,7 @@ func LiftMany[A any](as ...A) Stream[A] {
 func FromSlice[A any](as []A) Stream[A] {
 	return fromSliceImpl[A]{
 		slice: as,
-	}
+	}.Step
 	// if len(as) == 0 {
 	// 	return Empty[A]()
 	// } else if len(as) == 1 {
@@ -73,7 +73,7 @@ func Generate[A any, S any](zero S, f func(s S) (S, A)) Stream[A] {
 	return generateImpl[A, S]{
 		zero: zero,
 		f: f,
-	}
+	}.Step
 }
 
 type generateImpl[A any, S any] struct {

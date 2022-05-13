@@ -14,7 +14,7 @@ func Take[A any](stm Stream[A], n int) Stream[A]{
 		return takeImpl[A]{
 			stm: stm,
 			n: n,
-		}
+		}.Step
 	}
 }
 
@@ -25,9 +25,9 @@ type takeImpl[A any] struct {
 
 func (t takeImpl[A])Step() (io.IO[StepResult[A]]) {
 	if t.n == 0 {// should never happen
-		return Empty[A]().Step()
+		return Empty[A]()()
 	} else {
-		return io.Map(t.stm.Step(), func (sra StepResult[A]) StepResult[A] {
+		return io.Map(t.stm(), func (sra StepResult[A]) StepResult[A] {
 			nextCount := t.n
 			if sra.HasValue {
 				nextCount = t.n - 1
@@ -45,7 +45,7 @@ func Drop[A any](stm Stream[A], n int) Stream[A]{
 		return dropImpl[A]{
 			stm: stm,
 			n: n,
-		}
+		}.Step
 	}
 }
 
@@ -56,9 +56,9 @@ type dropImpl[A any] struct {
 
 func (i dropImpl[A])Step() (io.IO[StepResult[A]]) {
 	if i.n == 0 {// should never happen
-		return Empty[A]().Step()
+		return Empty[A]()()
 	} else {
-		return io.Map(i.stm.Step(), func (sra StepResult[A]) StepResult[A] {
+		return io.Map(i.stm(), func (sra StepResult[A]) StepResult[A] {
 			sra.Continuation = Drop(sra.Continuation, i.n - 1)
 			sra.HasValue = false
 			return sra
