@@ -8,7 +8,7 @@ import (
 
 
 func DrainAll[A any](stm Stream[A]) io.IO[io.Unit] {
-	return io.FlatMap(stm(), func(sra StepResult[A]) io.IO[io.Unit] {
+	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[io.Unit] {
 		if sra.IsFinished {
 			return io.Lift(io.Unit1)
 		} else {
@@ -20,7 +20,7 @@ func DrainAll[A any](stm Stream[A]) io.IO[io.Unit] {
 
 
 func AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A] {
-	return io.FlatMap(stm(), func(sra StepResult[A]) io.IO[[]A] {
+	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[[]A] {
 		if sra.IsFinished {
 			return io.Lift(start)
 		} else if sra.HasValue {
