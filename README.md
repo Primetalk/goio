@@ -20,6 +20,8 @@ The following functions could be used to manipulate computations:
 - `io.FlatMap[A, B](ioa IO[A], f func(A)IO[B]) IO[B]`
 - `io.MapPure[A, B](ioa IO[A], f func(A)B) IO[B]`
 - `io.Map[A, B](ioa IO[A], f func(A)(B, error)) IO[B]`
+- `io.Sequence[A any](ioas []IO[A]) (res IO[[]A])`
+- `io.SequenceUnit(ious []IO[Unit]) (res IOUnit)`
 
 ### Execution
 

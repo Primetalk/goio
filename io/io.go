@@ -164,3 +164,21 @@ func FoldErr[A any, B any](io IO[A], f func(a A) (B, error), recover func (error
 func Recover[A any](io IO[A], recover func(err error)IO[A])IO[A] {
 	return Fold(io, Lift[A], recover)
 }
+
+func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
+	res = Lift([]A{})
+	for _, iou := range ioas {
+		res = FlatMap(res, func (as []A) IO[[]A] { 
+			return Map(iou, func (a A) []A { return append(as, a)})
+		})
+	}
+	return
+}
+
+func SequenceUnit(ious []IO[Unit]) (res IOUnit) {
+	res = IOUnit1
+	for _, iou := range ious {
+		res = FlatMap(res, func (Unit) IOUnit { return iou })
+	}
+	return
+}
