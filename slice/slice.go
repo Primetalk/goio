@@ -23,3 +23,23 @@ func FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B) {
 	}
 	return
 }
+
+func Filter[A any](as []A, p func(a A) bool) (res []A){
+	res = make([]A, len(as))
+	for _, a := range as {
+		if p(a) {
+			res = append(res, a)
+		}
+	}
+	return
+}
+
+type Set[A comparable] map[A]struct{}
+
+func ToSet[A comparable](as []A)(s Set[A]){
+	s = make(map[A]struct{}, len(as))
+	for _, a := range as {
+		s[a] = struct{}{}
+	}
+	return
+}

@@ -82,3 +82,17 @@ Sink is a Pipe that returns a stream of units. That stream could be drained.
 
 - `text.ReadLines(reader fio.Reader) stream.Stream[string]`
 - `text.WriteLines(writer fio.Writer) stream.Sink[string]`
+
+## Slice utilities
+
+Some utilities that are convenient when working with slices.
+
+```
+Map[A any, B any](as []A, f func(A)B)(bs []B)
+FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B)
+FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)
+Filter[A any](as []A, p func(a A) bool) (res []A)
+ToSet[A comparable](as []A)(s Set[A])
+
+type Set[A comparable] map[A]struct{}
+```
