@@ -1,5 +1,18 @@
 # Implementation of IO using go1.18 generics
 
+## Functions
+
+Some general functions that are sometimes useful.
+
+- `fun.Const[A any, B any](b B)func(A)B`
+- `fun.ConstUnit[B any](b B) func(Unit)B`
+
+- `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
+- `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`
+
+- `fun.Unit` - type that has only one instance
+- `fun.Unit1` - the instance of the Unit type
+
 ## IO
 
 IO encapsulates a calculation and provides a mechanism to compose a few calculations (flat map or bind).
@@ -22,6 +35,8 @@ The following functions could be used to manipulate computations:
 - `io.Map[A, B](ioa IO[A], f func(A)(B, error)) IO[B]`
 - `io.Sequence[A any](ioas []IO[A]) (res IO[[]A])`
 - `io.SequenceUnit(ious []IO[Unit]) (res IOUnit)`
+- `io.Unptr[A any](ptra *A) IO[A]` - retrieves the value at pointer. Fails if nil
+- `io.Wrapf[A any](io IO[A], format string, args...interface{}) IO[A]` - wraps an error with additional context information
 
 ### Execution
 
@@ -53,7 +68,7 @@ Implementation is immutable, so we have to maintain the updated stream along the
 
 ### Execution
 
-- `stream.DrainAll[A any](stm Stream[A]) io.IO[io.Unit]`
+- `stream.DrainAll[A any](stm Stream[A]) io.IO[fun.Unit]`
 - `stream.AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A]`
 - `stream.ToSlice[A any](stm Stream[A]) io.IO[[]A]`
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
@@ -66,7 +81,7 @@ Sink is a Pipe that returns a stream of units. That stream could be drained.
 
 - `stream.NewSink[A any](f func(a A)) Sink[A]`
 - `stream.Through[A any, B any](stm Stream[A], pipe Pipe[A, B]) Stream[B]`
-- `stream.ToSink[A any](stm Stream[A], sink Sink[A]) Stream[io.Unit]`
+- `stream.ToSink[A any](stm Stream[A], sink Sink[A]) Stream[fun.Unit]`
 
 ### Length manipulation
 
@@ -92,6 +107,8 @@ Map[A any, B any](as []A, f func(A)B)(bs []B)
 FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B)
 FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)
 Filter[A any](as []A, p func(a A) bool) (res []A)
+Flatten[A any](ass [][]A)(aas[]A)
+
 ToSet[A comparable](as []A)(s Set[A])
 
 type Set[A comparable] map[A]struct{}

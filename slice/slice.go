@@ -34,6 +34,18 @@ func Filter[A any](as []A, p func(a A) bool) (res []A){
 	return
 }
 
+func Flatten[A any](ass [][]A)(aas[]A) {
+	total := 0
+	for _, as := range ass {
+		total += len(as)
+	}
+	aas = make([]A, total)
+	for _, as := range ass {
+		aas = append(aas, as...)
+	}
+	return
+}
+
 type Set[A comparable] map[A]struct{}
 
 func ToSet[A comparable](as []A)(s Set[A]){

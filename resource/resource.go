@@ -3,12 +3,13 @@ package resource
 import (
 	"log"
 
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 )
 
 type Closable[A any] struct {
 	Value A
-	Close func() io.IO[io.Unit]
+	Close func() io.IO[fun.Unit]
 }
 
 type Resource[A any] io.IO[Closable[A]]
@@ -18,28 +19,28 @@ func Use[A any, B any](res Resource[A], f func(A) io.IO[B]) io.IO[B] {
 		iob := f(cl.Value)
 		return io.Fold(iob, 
 			func (b B) io.IO[B] {
-				return io.Map(cl.Close(), func (io.Unit) B {
+				return io.Map(cl.Close(), func (fun.Unit) B {
 					return b
 				})
 			}, 
 			func (err error) io.IO[B] {
 				iocl := cl.Close()
-				ioclSafe := io.Recover(iocl, func (err2 error)io.IO[io.Unit]{
+				ioclSafe := io.Recover(iocl, func (err2 error)io.IO[fun.Unit]{
 					log.Printf("double error during resource release: %+v", err2)
 					return io.IOUnit1
 				})
-				return io.FlatMap(ioclSafe, func (io.Unit) io.IO[B] {
+				return io.FlatMap(ioclSafe, func (fun.Unit) io.IO[B] {
 					return io.Fail[B](err)
 				})
 			})
 	})
 }
 
-func NewResource[A any](acquire io.IO[A], release func(A)io.IO[io.Unit]) Resource[A] {
+func NewResource[A any](acquire io.IO[A], release func(A)io.IO[fun.Unit]) Resource[A] {
 	return io.Map(acquire, func (a A) Closable[A] {
 		return Closable[A]{
 			Value: a,
-			Close: func() io.IO[io.Unit] {
+			Close: func() io.IO[fun.Unit] {
 				return release(a)
 			},
 		}
@@ -61,12 +62,12 @@ func ClosableFlatMap[A any, B any](ca Closable[A], f func (a A) Closable[B] ) Cl
 	cb := f(ca.Value)
 	return Closable[B] {
 		Value: cb.Value,
-		Close: func () io.IOUnit {
+		Close: func () io.IO[fun.Unit] {
 			return io.Fold(cb.Close(), 
-			func (io.Unit) io.IOUnit {
+			func (fun.Unit) io.IO[fun.Unit] {
 				return ca.Close()
 			},
-			func (err2 error) io.IOUnit {
+			func (err2 error) io.IO[fun.Unit] {
 				log.Printf("double error during closable release: %+v", err2)
 				return ca.Close()
 			},

@@ -1,5 +1,10 @@
 package io
 
+import (
+	"github.com/pkg/errors"
+	"github.com/primetalk/goio/fun"
+)
+
 type IO[A any] interface {
 	unsafeRun() (A, error)
 }
@@ -22,7 +27,8 @@ func LiftPair[A any](a A, err error) IO[A] {
 	}
 }
 
-func UnsafeRunSync[A any](io IO[A]) (A, error) {
+func UnsafeRunSync[A any](io IO[A]) (res A, err error) {
+	defer RecoverToErrorVar("UnsafeRunSync", &err)
 	return io.unsafeRun()
 }
 
@@ -56,9 +62,9 @@ func (e evalImpl[A])unsafeRun() (res A, err error) {
 	return e.f()
 }
 
-func FromUnit(f func() error) IO[Unit] {
-	return Eval(func () (Unit, error) {
-		return Unit1, f()
+func FromUnit(f func() error) IO[fun.Unit] {
+	return Eval(func () (fun.Unit, error) {
+		return fun.Unit1, f()
 	})
 }
 
@@ -175,10 +181,30 @@ func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
 	return
 }
 
-func SequenceUnit(ious []IO[Unit]) (res IOUnit) {
+func SequenceUnit(ious []IOUnit) (res IOUnit) {
 	res = IOUnit1
 	for _, iou := range ious {
-		res = FlatMap(res, func (Unit) IOUnit { return iou })
+		res = FlatMap(res, func (fun.Unit) IOUnit { return iou })
 	}
 	return
 }
+
+// Unptr retrieves the value at pointer. Fails if nil
+func Unptr[A any](ptra *A) IO[A]{
+	if ptra == nil {
+		return Fail[A](errors.New("nil pointer"))
+	} else {
+		return Lift(*ptra)
+	}
+}
+
+// Wrapf wraps an error with additional context information
+func Wrapf[A any](io IO[A], format string, args...interface{}) IO[A] {
+	return Recover(io, func(err error) IO[A] {
+		return Fail[A](errors.Wrapf(err, format, args...))
+	})
+}
+
+var IOUnit1 = Lift(fun.Unit1)
+
+type IOUnit = IO[fun.Unit]

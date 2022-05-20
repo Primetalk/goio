@@ -3,21 +3,19 @@ package stream
 import (
 	"fmt"
 
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 )
 
-
-func DrainAll[A any](stm Stream[A]) io.IO[io.Unit] {
-	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[io.Unit] {
+func DrainAll[A any](stm Stream[A]) io.IO[fun.Unit] {
+	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[fun.Unit] {
 		if sra.IsFinished {
-			return io.Lift(io.Unit1)
+			return io.Lift(fun.Unit1)
 		} else {
 			return DrainAll(sra.Continuation)
 		}
 	})
 }
-
-
 
 func AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A] {
 	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[[]A] {
@@ -31,13 +29,13 @@ func AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A] {
 	})
 }
 
-func ToSlice[A any](stm Stream[A]) io.IO[[]A]{
+func ToSlice[A any](stm Stream[A]) io.IO[[]A] {
 	return AppendToSlice(stm, []A{})
 }
 
 func Head[A any](stm Stream[A]) io.IO[A] {
 	slice1 := ToSlice(Take(stm, 1))
-	return io.MapErr(slice1, func (as []A) (a A, err error) {
+	return io.MapErr(slice1, func(as []A) (a A, err error) {
 		if len(as) > 0 {
 			a = as[0]
 		} else {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 	"github.com/primetalk/goio/resource"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,7 @@ import (
 func TestResource(t *testing.T) {
 	res := resource.NewResource(
 		io.Lift("resource"),
-		func(s string) io.IO[io.Unit]{ 
+		func(s string) io.IO[fun.Unit]{ 
 			assert.Equal(t, "resource", s)
 			return io.IOUnit1
 		},
@@ -29,7 +30,7 @@ func TestResourceFail(t *testing.T) {
 	released := false
 	res := resource.NewResource(
 		io.Lift("resource"),
-		func(s string) io.IO[io.Unit]{ 
+		func(s string) io.IO[fun.Unit]{ 
 			assert.Equal(t, "resource", s)
 			released = true
 			return io.IOUnit1
