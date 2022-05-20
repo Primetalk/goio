@@ -1,7 +1,7 @@
 package slice
 
 func Map[A any, B any](as []A, f func(A)B)(bs []B) {
-	bs = make([]B, len(as))
+	bs = make([]B, 0, len(as))
 	for _, a := range as {
 		bs = append(bs, f(a))
 	}
@@ -9,7 +9,7 @@ func Map[A any, B any](as []A, f func(A)B)(bs []B) {
 }
 
 func FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B) {
-	bs = make([]B, len(as))
+	bs = make([]B, 0, len(as))
 	for _, a := range as {
 		bs = append(bs, f(a)...)
 	}
@@ -25,7 +25,7 @@ func FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B) {
 }
 
 func Filter[A any](as []A, p func(a A) bool) (res []A){
-	res = make([]A, len(as))
+	res = make([]A, 0, len(as))
 	for _, a := range as {
 		if p(a) {
 			res = append(res, a)
@@ -39,7 +39,7 @@ func Flatten[A any](ass [][]A)(aas[]A) {
 	for _, as := range ass {
 		total += len(as)
 	}
-	aas = make([]A, total)
+	aas = make([]A, 0, total)
 	for _, as := range ass {
 		aas = append(aas, as...)
 	}
