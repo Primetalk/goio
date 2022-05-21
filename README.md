@@ -57,6 +57,30 @@ To finally run all constructed computations one may use
 - `io.UnsafeRunSync[A](ioa IO[A])`
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
 
+## Parallel computing
+
+Go routine is represented using `Fiber[A]` interface:
+```go
+type Fiber[A any] interface {
+	// Join waits for results of the fiber.
+	// When fiber completes, this IO will complete and return the result.
+	// After this fiber is closed, all join IOs fail immediately.
+	Join() IO[A]
+	// Closes the fiber and stops sending callbacks.
+	// After closing, the respective go routine may complete
+	// This is not Cancel, it does not send any signals to the fiber.
+	// The work will still be done.
+	Close() IO[fun.Unit]
+	// Cancel sends cancellation signal to the Fiber.
+	// If the fiber respects the signal, it'll stop.
+	// Yet to be implemented.
+	// Cancel() IO[Unit]
+}
+```
+
+- `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
+- `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
+
 ## Stream
 
 Stream represents a potentially infinite source of values.
