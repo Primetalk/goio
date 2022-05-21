@@ -7,6 +7,31 @@ import (
 	"github.com/primetalk/goio/io"
 )
 
+// Collect collects all element from the stream and for each element invokes 
+// the provided function
+func Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit] {
+	return io.FlatMap[StepResult[A]](
+		stm, 
+		func(sra StepResult[A]) io.IO[fun.Unit] {
+			if sra.IsFinished {
+				return io.Lift(fun.Unit1)
+			} else {
+				if sra.HasValue {
+					collector(sra.Value)
+				}
+				return Collect(sra.Continuation, collector)
+			}
+		})
+}
+
+// ForEach invokes a simple function for each element of the stream.
+func ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit] {
+	return Collect(stm, func(a A) error { 
+		collector(a)
+		return nil
+	})
+}
+
 func DrainAll[A any](stm Stream[A]) io.IO[fun.Unit] {
 	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[fun.Unit] {
 		if sra.IsFinished {
@@ -43,4 +68,26 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 		}
 		return
 	})
+}
+
+// ToChannel sends all stream elements to the given channel
+func ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit] {
+	return ForEach(stm, func(a A){
+		ch <- a
+	})
+}
+
+// FromChannel constructs a stream that reads from the given channel
+// until the channel is open.
+func FromChannel[A any](ch chan A) Stream[A] {
+	return FromStepResult(
+		io.Pure(func() StepResult[A] {
+			a, ok := <-ch
+			if ok {
+				return NewStepResult(a, FromChannel(ch))
+			} else {
+				return NewStepResultFinished[A]()
+			}
+		}),
+	)
 }

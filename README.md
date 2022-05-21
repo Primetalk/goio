@@ -89,6 +89,14 @@ Implementation is immutable, so we have to maintain the updated stream along the
 - `stream.ToSlice[A any](stm Stream[A]) io.IO[[]A]`
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
 
+- `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
+- `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.
+
+Working with channels:
+
+- `stream.ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit]` - sends all stream elements to the given channel
+- `stream.FromChannel[A any](ch chan A) Stream[A]` - constructs a stream that reads from the given channel until the channel is open.
+
 ### Pipes and sinks
 
 Pipe is as simple as a function that takes one stream and returns another stream.
