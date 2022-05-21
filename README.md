@@ -65,6 +65,8 @@ Implementation is immutable, so we have to maintain the updated stream along the
 - `stream.Generate[A any, S any](zero S, f func(s S) (S, A)) Stream[A]` - generates an infinite stream based on a generator function.
 - `stream.Unfold[A any](zero A, f func(A) A) Stream[A]` - generates an infinite stream from previous values
 
+- `stream.FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A]` - basic definition of a stream - IO that returns value and continuation.
+
 ### Manipulation
 
 - `stream.FlatMap[A any, B any](stm Stream[A], f func (a A) Stream[B]) Stream[B]`

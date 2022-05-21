@@ -51,3 +51,7 @@ func Unfold[A any](zero A, f func(A) A) Stream[A] {
 func FromSideEffectfulFunction[A any](f func ()(A,error)) Stream[A] {
 	 return Repeat(Eval(io.Eval(f)))
 }
+
+func FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A] {
+	return iosr
+}
