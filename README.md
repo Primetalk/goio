@@ -13,6 +13,14 @@ Some general functions that are sometimes useful.
 - `fun.Unit` - type that has only one instance
 - `fun.Unit1` - the instance of the Unit type
 
+- `fun.Either[A,B]` - type that represents either A or B.
+
+- `fun.Left[A any, B any](a A) Either[A, B]`
+- `fun.Right[A any, B any](b B) Either[A, B]`
+- `fun.IsLeft[A any, B any](eab Either[A, B]) bool`
+- `fun.IsRight[A any, B any](eab Either[A, B]) bool`
+- `fun.Fold[A any, B any, C any](eab Either[A, B], left func(A)C, right func(B)C) C` - Fold pattern matches Either with two given pattern match handlers
+
 ## IO
 
 IO encapsulates a calculation and provides a mechanism to compose a few calculations (flat map or bind).
