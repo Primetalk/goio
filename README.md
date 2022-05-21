@@ -39,6 +39,7 @@ To construct an IO one may use the following functions:
 
 The following functions could be used to manipulate computations:
 - `io.FlatMap[A, B](ioa IO[A], f func(A)IO[B]) IO[B]`
+- `io.AndThen[A any, B any](ioa IO[A], iob IO[B]) IO[B]` - AndThen runs the first IO, ignores it's result and then runs the second one.
 - `io.MapPure[A, B](ioa IO[A], f func(A)B) IO[B]`
 - `io.Map[A, B](ioa IO[A], f func(A)(B, error)) IO[B]`
 - `io.Sequence[A any](ioas []IO[A]) (res IO[[]A])`
@@ -46,10 +47,15 @@ The following functions could be used to manipulate computations:
 - `io.Unptr[A any](ptra *A) IO[A]` - retrieves the value at pointer. Fails if nil
 - `io.Wrapf[A any](io IO[A], format string, args...interface{}) IO[A]` - wraps an error with additional context information
 
+To and from `GoResult` - allows to handle both good value and an error:
+- `io.FoldToGoResult[A any](io IO[A]) IO[GoResult[A]]` - FoldToGoResult converts either value or error to go result. It should never fail.
+- `io.UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A]` - UnfoldGoResult represents GoResult back to ordinary IO.
+
 ### Execution
 
 To finally run all constructed computations one may use
 - `io.UnsafeRunSync[A](ioa IO[A])`
+- `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
 
 ## Stream
 

@@ -133,6 +133,12 @@ func FlatMapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 	}
 }
 
+// AndThen runs the first IO, ignores it's result and then runs the second one.
+func AndThen[A any, B any](ioa IO[A], iob IO[B]) IO[B] {
+	return FlatMap(ioa, func(A)IO[B]{
+		return iob
+	})
+}
 func Lift[A any](a A) IO[A] {
 	return LiftPair(a, nil)
 }
@@ -153,6 +159,25 @@ func Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) I
 			return recover(err)
 		}
 	})
+}
+
+// FoldToGoResult converts either value or error to go result
+// typically it should never fail.
+func FoldToGoResult[A any](io IO[A]) IO[GoResult[A]] {
+	return Fold(
+		io, 
+		func(a A) IO[GoResult[A]] {
+			return Lift(GoResult[A]{Value:a})
+		},
+		func(err error) IO[GoResult[A]] {
+			return Lift(GoResult[A]{Error:err})
+		},
+	)
+}
+
+// UnfoldGoResult represents GoResult back to ordinary IO.
+func UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A] {
+	return MapErr(iogr, func(gr GoResult[A]) (A, error) { return gr.Value, gr.Error})
 }
 
 func FoldErr[A any, B any](io IO[A], f func(a A) (B, error), recover func (error)(B, error)) IO[B]{
@@ -208,3 +233,11 @@ func Wrapf[A any](io IO[A], format string, args...interface{}) IO[A] {
 var IOUnit1 = Lift(fun.Unit1)
 
 type IOUnit = IO[fun.Unit]
+
+// ForEach calls the provided callback after IO is completed.
+func ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit] {
+	return Map(io, func (a A) fun.Unit {
+		cb(a)
+		return fun.Unit1
+	})
+}
