@@ -1,4 +1,5 @@
-// Package fun provides reusable general-purpose functions (Const, Swap, Curry) and data structures (Unit, Either).
+// Package fun provides reusable general-purpose functions (Const, Swap, Curry) and 
+// data structures (Unit, Pair, Either).
 package fun
 
 // Const creates a function that will ignore it's input and return the specified value.
