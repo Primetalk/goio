@@ -1,3 +1,4 @@
+// Package resourse provides some means to deal with resources
 package resource
 
 import (
@@ -7,13 +8,21 @@ import (
 	"github.com/primetalk/goio/io"
 )
 
+// Closable is a value that is accompanied with the Close().
+// This is an internal structure that should not be used outside of the resource package.
 type Closable[A any] struct {
 	Value A
 	Close func() io.IO[fun.Unit]
 }
 
+// Resource[A] is an structure that can only be _used_ via Use.
+// Unfortunately, it's not an interface, because interface methods do not support generics
+// at the moment.
 type Resource[A any] io.IO[Closable[A]]
 
+// Use is a only way to access the resource instance.
+// It guarantees that the resource instance will be closed after use
+// regardless of the failure/success result.
 func Use[A any, B any](res Resource[A], f func(A) io.IO[B]) io.IO[B] {
 	return io.FlatMap(res.(io.IO[Closable[A]]), func(cl Closable[A]) io.IO[B] {
 		iob := f(cl.Value)
@@ -36,6 +45,7 @@ func Use[A any, B any](res Resource[A], f func(A) io.IO[B]) io.IO[B] {
 	})
 }
 
+// NewResource constructs a resource given two functions - acquire and release.
 func NewResource[A any](acquire io.IO[A], release func(A) io.IO[fun.Unit]) Resource[A] {
 	return io.Map(acquire, func(a A) Closable[A] {
 		return Closable[A]{
@@ -47,10 +57,12 @@ func NewResource[A any](acquire io.IO[A], release func(A) io.IO[fun.Unit]) Resou
 	})
 }
 
+// NewResourceFromIOClosable - is an internal function that constructs a resource from closable IO.
 func NewResourceFromIOClosable[A any](cl io.IO[Closable[A]]) Resource[A] {
 	return cl
 }
 
+// ClosableMap is an internal function to map closable using the provided function.
 func ClosableMap[A any, B any](ra Closable[A], f func(a A) B) Closable[B] {
 	return Closable[B]{
 		Value: f(ra.Value),
@@ -58,6 +70,7 @@ func ClosableMap[A any, B any](ra Closable[A], f func(a A) B) Closable[B] {
 	}
 }
 
+// ClosableFlatMap flatmaps the closable. Allows to construct have more than one resource in scope.
 func ClosableFlatMap[A any, B any](ca Closable[A], f func(a A) Closable[B]) Closable[B] {
 	cb := f(ca.Value)
 	return Closable[B]{
@@ -76,6 +89,7 @@ func ClosableFlatMap[A any, B any](ca Closable[A], f func(a A) Closable[B]) Clos
 	}
 }
 
+// Map maps the resource value using the provided conversion function.
 func Map[A any, B any](ra Resource[A], f func(a A) B) Resource[B] {
 	return io.Map[Closable[A]](ra,
 		func(ca Closable[A]) Closable[B] {
@@ -83,6 +97,7 @@ func Map[A any, B any](ra Resource[A], f func(a A) B) Resource[B] {
 		})
 }
 
+// FlatMap allows to add another resource to scope. Both will be released in reverse order.
 func FlatMap[A any, B any](ra Resource[A], f func(a A) Resource[B]) Resource[B] {
 	return io.FlatMap[Closable[A]](ra,
 		func(ca Closable[A]) io.IO[Closable[B]] {
@@ -91,6 +106,7 @@ func FlatMap[A any, B any](ra Resource[A], f func(a A) Resource[B]) Resource[B] 
 		})
 }
 
+// ClosableIOTransform transforms a closable of io closable to just io closable.
 func ClosableIOTransform[A any](cioca Closable[io.IO[Closable[A]]]) (ioca io.IO[Closable[A]]) {
 	return io.Eval(func() (ca Closable[A], err error) {
 		defer io.RecoverToErrorVar("resource.ClosableIOTransform", &err)

@@ -1,5 +1,7 @@
+// Package slice provides common utility functions to Go slices.
 package slice
 
+// Map converts all values of a slice using the provided function.
 func Map[A any, B any](as []A, f func(A) B) (bs []B) {
 	bs = make([]B, 0, len(as))
 	for _, a := range as {
@@ -8,6 +10,8 @@ func Map[A any, B any](as []A, f func(A) B) (bs []B) {
 	return
 }
 
+// FlatMap converts all values of a slice using the provided function.
+// As the function returns slices, all of them are appended to a single long slice.
 func FlatMap[A any, B any](as []A, f func(A) []B) (bs []B) {
 	bs = make([]B, 0, len(as))
 	for _, a := range as {
@@ -16,6 +20,7 @@ func FlatMap[A any, B any](as []A, f func(A) []B) (bs []B) {
 	return
 }
 
+// FoldLeft folds all values in the slice using the combination function.
 func FoldLeft[A any, B any](as []A, zero B, f func(B, A) B) (res B) {
 	res = zero
 	for _, a := range as {
@@ -24,6 +29,7 @@ func FoldLeft[A any, B any](as []A, zero B, f func(B, A) B) (res B) {
 	return
 }
 
+// Filter filters slice values.
 func Filter[A any](as []A, p func(a A) bool) (res []A) {
 	res = make([]A, 0, len(as))
 	for _, a := range as {
@@ -34,6 +40,7 @@ func Filter[A any](as []A, p func(a A) bool) (res []A) {
 	return
 }
 
+// Flatten simplifies a slice of slices to just a slice.
 func Flatten[A any](ass [][]A) (aas []A) {
 	total := 0
 	for _, as := range ass {
@@ -46,8 +53,10 @@ func Flatten[A any](ass [][]A) (aas []A) {
 	return
 }
 
+// Set is a way to represent sets in Go.
 type Set[A comparable] map[A]struct{}
 
+// ToSet converts a slice to a set.
 func ToSet[A comparable](as []A) (s Set[A]) {
 	s = make(map[A]struct{}, len(as))
 	for _, a := range as {
