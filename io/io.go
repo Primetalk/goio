@@ -242,6 +242,7 @@ func SequenceUnit(ious []IOUnit) (res IOUnit) {
 }
 
 var ErrorNPE = errors.New("nil pointer")
+
 // Unptr retrieves the value at pointer. Fails if nil
 func Unptr[A any](ptra *A) IO[A] {
 	if ptra == nil {
