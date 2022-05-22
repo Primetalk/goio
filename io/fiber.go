@@ -20,19 +20,18 @@ type Fiber[A any] interface {
 	// Cancel() IO[Unit]
 }
 
-
 type fiberImpl[A any] struct {
 	callbacks chan Callback[A]
 }
 
-func (f fiberImpl[A])Join() IO[A] {
-	return Async(func(cb Callback[A]){
+func (f fiberImpl[A]) Join() IO[A] {
+	return Async(func(cb Callback[A]) {
 		f.callbacks <- cb
 	})
 }
 
-func (f fiberImpl[A])Close() IO[fun.Unit] {
-	return FromUnit(func() error{
+func (f fiberImpl[A]) Close() IO[fun.Unit] {
+	return FromUnit(func() error {
 		close(f.callbacks)
 		return nil
 	})
@@ -46,9 +45,9 @@ var maxCallbackCount = 16
 // When completed it'll start sending the results to the callbacks.
 // The same value will be delivered to all listeners.
 func Start[A any](io IO[A]) IO[Fiber[A]] {
-	return Pure(func()(Fiber[A]){
+	return Pure(func() Fiber[A] {
 		callbacks := make(chan Callback[A], maxCallbackCount)
-		goRoutine := func(){
+		goRoutine := func() {
 			a, err1 := UnsafeRunSync(io)
 			for cb := range callbacks {
 				cb(a, err1)
@@ -65,7 +64,7 @@ func Start[A any](io IO[A]) IO[Fiber[A]] {
 // FireAndForget runs the given IO in a go routine and ignores the result
 // It uses Fiber underneath.
 func FireAndForget[A any](ioa IO[A]) IO[fun.Unit] {
-	return FlatMap(Start(ioa), func (fiber Fiber[A])IO[fun.Unit] { 
+	return FlatMap(Start(ioa), func(fiber Fiber[A]) IO[fun.Unit] {
 		return fiber.Close()
 	})
 }

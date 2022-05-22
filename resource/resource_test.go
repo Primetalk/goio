@@ -13,7 +13,7 @@ import (
 func TestResource(t *testing.T) {
 	res := resource.NewResource(
 		io.Lift("resource"),
-		func(s string) io.IO[fun.Unit]{ 
+		func(s string) io.IO[fun.Unit] {
 			assert.Equal(t, "resource", s)
 			return io.IOUnit1
 		},
@@ -30,7 +30,7 @@ func TestResourceFail(t *testing.T) {
 	released := false
 	res := resource.NewResource(
 		io.Lift("resource"),
-		func(s string) io.IO[fun.Unit]{ 
+		func(s string) io.IO[fun.Unit] {
 			assert.Equal(t, "resource", s)
 			released = true
 			return io.IOUnit1

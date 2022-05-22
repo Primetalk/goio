@@ -14,15 +14,16 @@ func TestStream(t *testing.T) {
 	_, err := io.UnsafeRunSync(stream.DrainAll(empty))
 	assert.Equal(t, nil, err)
 	stream10_12 := stream.LiftMany(10, 11, 12)
-	stream20_24 := stream.Map(stream10_12, func(i int)int { return i * 2 })
+	stream20_24 := stream.Map(stream10_12, func(i int) int { return i * 2 })
 	res, err := io.UnsafeRunSync(stream.ToSlice(stream20_24))
 	assert.Equal(t, nil, err)
-	assert.Equal(t, []int{20,22,24}, res)
+	assert.Equal(t, []int{20, 22, 24}, res)
 }
 
-var printInt = stream.NewSink(func (i int) { fmt.Printf("%d", i)})
+var printInt = stream.NewSink(func(i int) { fmt.Printf("%d", i) })
+
 func TestGenerate(t *testing.T) {
-	powers2 := stream.Unfold(1, func(s int) int{
+	powers2 := stream.Unfold(1, func(s int) int {
 		return s * 2
 	})
 
@@ -37,7 +38,7 @@ func TestGenerate(t *testing.T) {
 }
 
 func TestDrainAll(t *testing.T) {
-	nats := stream.Unfold(0, func(s int) int{
+	nats := stream.Unfold(0, func(s int) int {
 		return s + 1
 	})
 	nats10 := stream.Take(nats, 10)
@@ -50,5 +51,5 @@ func TestDrainAll(t *testing.T) {
 	})
 	_, err := io.UnsafeRunSync(stream.DrainAll(natsAppend))
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, results, []int{1,2,3,4,5,6,7,8,9,10})
+	assert.ElementsMatch(t, results, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
 }

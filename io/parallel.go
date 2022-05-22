@@ -10,10 +10,11 @@ func Parallel[A any](ios []IO[A]) IO[[]A] {
 	ioFibers := slice.Map(ios, Start[A])
 	fibersIO := Sequence(ioFibers)
 	return FlatMap(fibersIO, func(fibers []Fiber[A]) IO[[]A] {
-		joins := slice.Map(fibers, func(fiber Fiber[A]) IO[A] { return fiber.Join()})
+		joins := slice.Map(fibers, func(fiber Fiber[A]) IO[A] { return fiber.Join() })
 		return Sequence(joins)
 	})
 }
+
 // ConcurrentlyFirst - runs all IOs in parallel.
 // returns the very first result.
 // TODO: after obtaining result - cancel the other IOs.

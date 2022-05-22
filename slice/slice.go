@@ -1,6 +1,6 @@
 package slice
 
-func Map[A any, B any](as []A, f func(A)B)(bs []B) {
+func Map[A any, B any](as []A, f func(A) B) (bs []B) {
 	bs = make([]B, 0, len(as))
 	for _, a := range as {
 		bs = append(bs, f(a))
@@ -8,7 +8,7 @@ func Map[A any, B any](as []A, f func(A)B)(bs []B) {
 	return
 }
 
-func FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B) {
+func FlatMap[A any, B any](as []A, f func(A) []B) (bs []B) {
 	bs = make([]B, 0, len(as))
 	for _, a := range as {
 		bs = append(bs, f(a)...)
@@ -16,7 +16,7 @@ func FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B) {
 	return
 }
 
-func FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B) {
+func FoldLeft[A any, B any](as []A, zero B, f func(B, A) B) (res B) {
 	res = zero
 	for _, a := range as {
 		res = f(res, a)
@@ -24,7 +24,7 @@ func FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B) {
 	return
 }
 
-func Filter[A any](as []A, p func(a A) bool) (res []A){
+func Filter[A any](as []A, p func(a A) bool) (res []A) {
 	res = make([]A, 0, len(as))
 	for _, a := range as {
 		if p(a) {
@@ -34,7 +34,7 @@ func Filter[A any](as []A, p func(a A) bool) (res []A){
 	return
 }
 
-func Flatten[A any](ass [][]A)(aas[]A) {
+func Flatten[A any](ass [][]A) (aas []A) {
 	total := 0
 	for _, as := range ass {
 		total += len(as)
@@ -48,7 +48,7 @@ func Flatten[A any](ass [][]A)(aas[]A) {
 
 type Set[A comparable] map[A]struct{}
 
-func ToSet[A comparable](as []A)(s Set[A]){
+func ToSet[A comparable](as []A) (s Set[A]) {
 	s = make(map[A]struct{}, len(as))
 	for _, a := range as {
 		s[a] = struct{}{}

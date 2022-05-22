@@ -25,4 +25,3 @@ func RecoverToErrorVar(name string, err *error) {
 		}
 	}
 }
-

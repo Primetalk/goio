@@ -7,11 +7,11 @@ import (
 	"github.com/primetalk/goio/io"
 )
 
-// Collect collects all element from the stream and for each element invokes 
+// Collect collects all element from the stream and for each element invokes
 // the provided function
-func Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit] {
+func Collect[A any](stm Stream[A], collector func(A) error) io.IO[fun.Unit] {
 	return io.FlatMap[StepResult[A]](
-		stm, 
+		stm,
 		func(sra StepResult[A]) io.IO[fun.Unit] {
 			if sra.IsFinished {
 				return io.Lift(fun.Unit1)
@@ -25,8 +25,8 @@ func Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit] {
 }
 
 // ForEach invokes a simple function for each element of the stream.
-func ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit] {
-	return Collect(stm, func(a A) error { 
+func ForEach[A any](stm Stream[A], collector func(A)) io.IO[fun.Unit] {
+	return Collect(stm, func(a A) error {
 		collector(a)
 		return nil
 	})
@@ -72,7 +72,7 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 
 // ToChannel sends all stream elements to the given channel
 func ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit] {
-	return ForEach(stm, func(a A){
+	return ForEach(stm, func(a A) {
 		ch <- a
 	})
 }
