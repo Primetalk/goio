@@ -1,6 +1,6 @@
-# Implementation of IO using go1.18 generics
+# Implementation of IO, Stream, Fiber using go1.18 generics
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/Primetalk/goio.svg)](https://pkg.go.dev/github.com/Primetalk/goio)[![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
+[![Go Reference](https://pkg.go.dev/badge/github.com/primetalk/goio.svg)](https://pkg.go.dev/github.com/primetalk/goio)[![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
 
 ## Functions
 
