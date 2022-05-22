@@ -1,6 +1,8 @@
-// Package fun provides reusable general-purpose functions (Const, Swap, Curry) and 
+// Package fun provides reusable general-purpose functions (Const, Swap, Curry) and
 // data structures (Unit, Pair, Either).
 package fun
+
+import "fmt"
 
 // Const creates a function that will ignore it's input and return the specified value.
 func Const[A any, B any](b B) func(A) B {
@@ -35,4 +37,9 @@ func Curry[A any, B any, C any](f func(a A, b B) C) func(a A) func(b B) C {
 // Identity function returns the given value unchanged.
 func Identity[A any](a A) A {
 	return a
+}
+
+// ToString converts the value to string using `Sprintf` `%v`.
+func ToString[A any](a A) string {
+	return fmt.Sprintf("%v", a)
 }

@@ -35,6 +35,10 @@ For `Either` there are a few helper functions:
 - `fun.IsRight[A any, B any](eab Either[A, B]) bool`
 - `fun.Fold[A any, B any, C any](eab Either[A, B], left func(A)C, right func(B)C) C` - Fold pattern matches Either with two given pattern match handlers
 
+For debug purposes it's useful to convert arbitrary data to strings.
+
+- `fun.ToString[A any](a A) string` - converts the value to string using `Sprintf` `%v`.
+
 ## IO
 
 IO encapsulates a calculation and provides a mechanism to compose a few calculations (flat map or bind).
