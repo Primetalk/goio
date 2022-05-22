@@ -37,11 +37,12 @@ func TestGenerate(t *testing.T) {
 	assert.Equal(t, 1024, res)
 }
 
+var nats = stream.Unfold(0, func(s int) int {
+	return s + 1
+})
+var nats10 = stream.Take(nats, 10)
+	
 func TestDrainAll(t *testing.T) {
-	nats := stream.Unfold(0, func(s int) int {
-		return s + 1
-	})
-	nats10 := stream.Take(nats, 10)
 	results := []int{}
 	natsAppend := stream.MapEval(nats10, func(a int) io.IO[int] {
 		return io.Eval(func() (int, error) {
@@ -52,4 +53,18 @@ func TestDrainAll(t *testing.T) {
 	_, err := io.UnsafeRunSync(stream.DrainAll(natsAppend))
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, results, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+}
+
+func TestStateFlatMap(t *testing.T) {
+	sumStream := stream.StateFlatMapWithFinish(nats10, 0, 
+		func(a int, s int) (int, stream.Stream[int]){
+			return s + a, stream.Empty[int]()
+		}, 
+		func(lastState int) stream.Stream[int] {
+			return stream.Lift(lastState)
+		})
+	ioSum := stream.Head(sumStream)
+	sum, err := io.UnsafeRunSync(ioSum)
+	assert.NoError(t, err)
+	assert.Equal(t, 55, sum)
 }
