@@ -7,16 +7,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func concat(a string, b string) string {
+	return a + b
+}
+
 func TestFun(t *testing.T) {
 	assert.Equal(t, "hello", fun.ConstUnit("hello")(fun.Unit1))
 	assert.Equal(t, "hello", fun.Identity("hello"))
-	concat := func(a string) func(string) string {
-		return func(b string) string {
-			return a + b
-		}
-	}
-	assert.Equal(t, "ab", concat("a")("b"))
-	assert.Equal(t, "ba", fun.Swap(concat)("a")("b"))
+	concatc := fun.Curry(concat)
+	assert.Equal(t, "ab", concatc("a")("b"))
+	assert.Equal(t, "ba", fun.Swap(concatc)("a")("b"))
 }
 
 func TestPair(t *testing.T) {
