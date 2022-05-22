@@ -75,15 +75,24 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 	})
 }
 
-// ToChannel sends all stream elements to the given channel
+// ToChannel sends all stream elements to the given channel.
+// When stream is completed, channel is closed.
 func ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit] {
-	return ForEach(stm, func(a A) {
-		ch <- a
-	})
+	stmUnits := StateFlatMapWithFinish(stm, ch, 
+		func(a A, ch chan A) (chan A, Stream[fun.Unit]){
+			ch <- a
+			return ch, EmptyUnit()
+		}, 
+		func(ch chan A) Stream[fun.Unit] {
+			close(ch)
+			return EmptyUnit()
+		})
+	return DrainAll(stmUnits)
 }
 
 // FromChannel constructs a stream that reads from the given channel
 // until the channel is open.
+// When channel is closed, the stream is also closed.
 func FromChannel[A any](ch chan A) Stream[A] {
 	return FromStepResult(
 		io.Pure(func() StepResult[A] {
