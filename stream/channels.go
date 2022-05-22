@@ -39,7 +39,7 @@ func FromChannel[A any](ch chan A) Stream[A] {
 
 // PairOfChannelsToPipe - takes two channels that are being used to
 // talk to some external process and convert them into a single pipe.
-// It first starts a separate go routine that will continously run
+// It first starts a separate go routine that will continuously run
 // the input stream and send all it's contents to the `input` channel.
 // The current thread is left with reading from the output channel.
 func PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B] {

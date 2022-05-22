@@ -52,7 +52,7 @@ func TestResourceFail(t *testing.T) {
 func TestChannelResource(t *testing.T) {
 	stringChannel := resource.UnbufferedChannel[string]()
 	helloIO := resource.Use(stringChannel, func(ch chan string) io.IO[string] {
-		notify := io.NotifyToChannel(100 * time.Millisecond, "hello", ch)
+		notify := io.NotifyToChannel(100*time.Millisecond, "hello", ch)
 		return io.AndThen(notify, io.FromChannel(ch))
 	})
 	hello, err := io.UnsafeRunSync(helloIO)
