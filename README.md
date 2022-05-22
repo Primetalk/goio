@@ -92,6 +92,15 @@ type Fiber[A any] interface {
 - `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results
 - `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
 
+### Working with time
+
+- `io.Sleep(d time.Duration)IO[fun.Unit]` - Sleep makes the IO sleep the specified time.
+- `io.SleepA[A any](d time.Duration, value A)IO[A]` - SleepA sleeps and then returns the constant value
+- `var ErrorTimeout` - an error that will be returned in case of timeout
+- `io.WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A]` - WithTimeout waits IO for completion for no longer than the provided duration. If there are no results, the IO will fail with timeout error.
+- `io.Never[A any]() IO[A]` - Never is a simple IO that never returns.
+- `io.Notify[A any](d time.Duration, value A, cb Callback[A]) IO[fun.Unit]` - Notify starts a separate thread that will call the given callback after the specified time.
+
 ## Stream
 
 Stream represents a potentially infinite source of values.
