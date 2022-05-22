@@ -1,4 +1,4 @@
-// Package resourse provides some means to deal with resources
+// Package resource provides some means to deal with resources
 package resource
 
 import (
