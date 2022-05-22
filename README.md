@@ -87,6 +87,11 @@ type Fiber[A any] interface {
 - `io.ToChannelAndClose[A any](ch chan A)func(A)IO[fun.Unit]` - ToChannelAndClose sends the value to the channel and then closes the channel.
 - `io.FromChannel[A any](ch chan A)IO[A]` - FromChannel reads a single value from the channel
 
+### Running things in parallel
+
+- `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results
+- `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
+
 ## Stream
 
 Stream represents a potentially infinite source of values.
