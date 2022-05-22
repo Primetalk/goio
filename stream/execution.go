@@ -32,6 +32,7 @@ func ForEach[A any](stm Stream[A], collector func(A)) io.IO[fun.Unit] {
 	})
 }
 
+// DrainAll executes the stream and throws away all values.
 func DrainAll[A any](stm Stream[A]) io.IO[fun.Unit] {
 	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[fun.Unit] {
 		if sra.IsFinished {
@@ -42,6 +43,7 @@ func DrainAll[A any](stm Stream[A]) io.IO[fun.Unit] {
 	})
 }
 
+// AppendToSlice executes the stream and appends it's results to the slice.
 func AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A] {
 	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[[]A] {
 		if sra.IsFinished {
@@ -54,17 +56,20 @@ func AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A] {
 	})
 }
 
+// ToSlice executes the stream and collects all results to a slice.
 func ToSlice[A any](stm Stream[A]) io.IO[[]A] {
 	return AppendToSlice(stm, []A{})
 }
 
+// Head takes the first element and executes it.
+// It'll fail if the stream is empty.
 func Head[A any](stm Stream[A]) io.IO[A] {
 	slice1 := ToSlice(Take(stm, 1))
 	return io.MapErr(slice1, func(as []A) (a A, err error) {
 		if len(as) > 0 {
 			a = as[0]
 		} else {
-			err = fmt.Errorf("head of empty stream")
+			err = fmt.Errorf("head of an empty stream")
 		}
 		return
 	})

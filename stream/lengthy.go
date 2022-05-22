@@ -2,10 +2,12 @@ package stream
 
 import "github.com/primetalk/goio/io"
 
+// Repeat appends the same stream infinitely.
 func Repeat[A any](stm Stream[A]) Stream[A] {
 	return AndThenLazy(stm, func() Stream[A] { return Repeat(stm) })
 }
 
+// Take cuts the stream after n elements.
 func Take[A any](stm Stream[A], n int) Stream[A] {
 	if n <= 0 {
 		return Empty[A]()
@@ -21,6 +23,7 @@ func Take[A any](stm Stream[A], n int) Stream[A] {
 	}
 }
 
+// Drop skips n elements in the stream.
 func Drop[A any](stm Stream[A], n int) Stream[A] {
 	if n <= 0 {
 		return stm

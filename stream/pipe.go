@@ -2,14 +2,20 @@ package stream
 
 import "github.com/primetalk/goio/fun"
 
+// Pipe is a conversion of one stream to another.
+// Technically it's a function that takes one stream and returns another.
 type Pipe[A any, B any] func(Stream[A]) Stream[B]
 
+// Sink is a pipe that does not return meaningful values.
 type Sink[A any] Pipe[A, fun.Unit]
 
+// Through passes the stream data through the pipe.
+// Technically it applies the pipe function to this stream.
 func Through[A any, B any](stm Stream[A], pipe Pipe[A, B]) Stream[B] {
 	return pipe(stm)
 }
 
+// NewSink constructs the sink from the provided function.
 func NewSink[A any](f func(a A)) Sink[A] {
 	return func(stm Stream[A]) Stream[fun.Unit] {
 		return Map(stm, func(a A) fun.Unit {
@@ -19,6 +25,7 @@ func NewSink[A any](f func(a A)) Sink[A] {
 	}
 }
 
+// ToSink streams all data from the stream to the sink.
 func ToSink[A any](stm Stream[A], sink Sink[A]) Stream[fun.Unit] {
 	return sink(stm)
 }

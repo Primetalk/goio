@@ -133,6 +133,7 @@ Implementation is immutable, so we have to maintain the updated stream along the
 - `stream.MapPure[A any, B any](stm Stream[A], f func(a A)B) Stream[B]`
 - `stream.StateFlatMap[A any, B any, S any](stm Stream[A], zero S, f func (a A, s S) (S, Stream[B])) Stream[B]`
 - `stream.Filter[A any](stm Stream[A], f func(A)bool) Stream[A]`
+- `stream.Flatten[A any](stm Stream[Stream[A]]) Stream[A]` - Flatten simplifies a stream of streams to just the stream of values by concatenating all inner streams.
 
 ### Execution
 
