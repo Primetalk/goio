@@ -101,6 +101,13 @@ type Fiber[A any] interface {
 - `io.Never[A any]() IO[A]` - Never is a simple IO that never returns.
 - `io.Notify[A any](d time.Duration, value A, cb Callback[A]) IO[fun.Unit]` - Notify starts a separate thread that will call the given callback after the specified time.
 
+### Simple async operations
+
+`type Callback[A any] func(A, error)` - is used as a notification mechanism for asyncronous communications.
+
+- `io.Async[A any](k func(Callback[A])) IO[A]` - represents an asyncronous computation that will eventually call the callback.
+- `io.StartInGoRoutineAndWaitForResult[A any](io IO[A]) IO[A]` - StartInGoRoutineAndWaitForResult - not very useful function. While it executes the IO in the go routine, the current thread is blocked.
+
 ## Stream
 
 Stream represents a potentially infinite source of values.
