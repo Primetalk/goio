@@ -177,10 +177,13 @@ After constructing the desired pipeline, the stream needs to be executed.
 - `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
 - `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.
 
-Working with channels:
+### Channels
+
+Provides a few utilities for working with channels:
 
 - `stream.ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit]` - sends all stream elements to the given channel
 - `stream.FromChannel[A any](ch chan A) Stream[A]` - constructs a stream that reads from the given channel until the channel is open.
+- `stream.PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B]` - PairOfChannelsToPipe - takes two channels that are being used to talk to some external process and convert them into a single pipe. It first starts a separate go routine that will continously run the input stream and send all it's contents to the `input` channel. The current thread is left with reading from the output channel.
 
 ### Pipes and sinks
 
