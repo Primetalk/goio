@@ -24,9 +24,6 @@ jobs:
       with:
         go-version: ${{ matrix.go }}
 
-    - name: Build
-      run: go install
-
     - name: Test
       run: |
         go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
