@@ -152,6 +152,7 @@ The following functions could be used to create a new stream:
 - `stream.Generate[A any, S any](zero S, f func(s S) (S, A)) Stream[A]` - generates an infinite stream based on a generator function.
 - `stream.Unfold[A any](zero A, f func(A) A) Stream[A]` - generates an infinite stream from previous values
 - `stream.FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A]` - basic definition of a stream - IO that returns value and continuation.
+- `stream.Eval[A any](ioa io.IO[A]) Stream[A]` - Eval returns a stream of one value that is the result of IO.
 
 ### Manipulation
 
