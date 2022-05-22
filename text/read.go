@@ -1,3 +1,4 @@
+// Package text provides some utilities to work with text files.
 package text
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/primetalk/goio/stream"
 )
 
+// ReadByteChunks reads chunks from the reader.
 func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 	return io.Eval(func() (res stream.StepResult[[]byte], err error) {
 		bytes := make([]byte, chunkSize)
@@ -28,6 +30,7 @@ func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 
 var emptyByteChunkStream = stream.Empty[[]byte]()
 
+// SplitBySeparator splits byte-chunk stream by the given separator.
 func SplitBySeparator(stm stream.Stream[[]byte], sep byte) stream.Stream[[]byte] {
 	return stream.StateFlatMap(stm, []byte{}, func(a []byte, s []byte) (resultState []byte, stm stream.Stream[[]byte]) {
 		parts := splitBy(sep, a, [][]byte{})
@@ -65,12 +68,14 @@ func splitBy[A comparable](sep A, data []A, prefixParts [][]A) (parts [][]A) {
 	}
 }
 
+// MapToStrings converts stream of bytes to strings.
 func MapToStrings(stm stream.Stream[[]byte]) stream.Stream[string] {
 	return stream.Map(stm, func(a []byte) string { return string(a) })
 }
 
 const DefaultChunkSize = 4096
 
+// ReadLines reads text file line-by-line.
 func ReadLines(reader fio.Reader) stream.Stream[string] {
 	chunks := ReadByteChunks(reader, DefaultChunkSize)
 	rows := SplitBySeparator(chunks, '\n')
