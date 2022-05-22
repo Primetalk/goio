@@ -81,6 +81,12 @@ type Fiber[A any] interface {
 - `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
 - `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
 
+### Using channels with IO and parallel computations
+
+- `io.ToChannel[A any](ch chan A)func(A)IO[fun.Unit]` - ToChannel saves the value to the channel.
+- `io.ToChannelAndClose[A any](ch chan A)func(A)IO[fun.Unit]` - ToChannelAndClose sends the value to the channel and then closes the channel.
+- `io.FromChannel[A any](ch chan A)IO[A]` - FromChannel reads a single value from the channel
+
 ## Stream
 
 Stream represents a potentially infinite source of values.
