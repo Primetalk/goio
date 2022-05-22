@@ -224,6 +224,7 @@ Some utilities that are convenient when working with slices.
 - `slice.FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B)`
 - `slice.FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)`
 - `slice.Filter[A any](as []A, p func(a A) bool) (res []A)`
+- `slice.FilterNot[A any](as []A, p func(a A) bool) (res []A)` - same as `Filter`, but inverses the predicate `p`.
 - `slice.Flatten[A any](ass [][]A)(aas[]A)`
 
 We can convert a slice to a set:

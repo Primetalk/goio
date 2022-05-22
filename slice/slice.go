@@ -40,6 +40,17 @@ func Filter[A any](as []A, p func(a A) bool) (res []A) {
 	return
 }
 
+// FilterNot filters slice values inverting the condition.
+func FilterNot[A any](as []A, p func(a A) bool) (res []A) {
+	res = make([]A, 0, len(as))
+	for _, a := range as {
+		if !p(a) {
+			res = append(res, a)
+		}
+	}
+	return
+}
+
 // Flatten simplifies a slice of slices to just a slice.
 func Flatten[A any](ass [][]A) (aas []A) {
 	total := 0
