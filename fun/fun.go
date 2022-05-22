@@ -30,3 +30,8 @@ func Curry[A any, B any, C any](f func(a A, b B) C) func(a A) func(b B) C {
 		}
 	}
 }
+
+// Identity function returns the given value unchanged.
+func Identity[A any](a A) A {
+	return a
+}
