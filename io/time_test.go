@@ -21,9 +21,9 @@ func TestTimeout(t *testing.T) {
 func TestNotify(t *testing.T) {
 	start := time.Now()
 	var notificationMoment time.Time
-	ion := io.Notify(100 * time.Millisecond, "a", func(str string, err error) {
+	ion := io.Notify(100*time.Millisecond, "a", func(str string, err error) {
 		assert.Equal(t, nil, err)
-	
+
 		notificationMoment = time.Now()
 	})
 	_, err := io.UnsafeRunSync(ion)
