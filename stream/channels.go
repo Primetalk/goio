@@ -9,11 +9,11 @@ import (
 // When stream is completed, channel is closed.
 // The IO blocks until the stream is exhausted.
 func ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit] {
-	stmUnits := StateFlatMapWithFinish(stm, ch, 
-		func(a A, ch chan A) (chan A, Stream[fun.Unit]){
+	stmUnits := StateFlatMapWithFinish(stm, ch,
+		func(a A, ch chan A) (chan A, Stream[fun.Unit]) {
 			ch <- a
 			return ch, EmptyUnit()
-		}, 
+		},
 		func(ch chan A) Stream[fun.Unit] {
 			close(ch)
 			return EmptyUnit()
@@ -37,16 +37,16 @@ func FromChannel[A any](ch chan A) Stream[A] {
 	)
 }
 
-// PairOfChannelsToPipe - takes two channels that are being used to 
+// PairOfChannelsToPipe - takes two channels that are being used to
 // talk to some external process and convert them into a single pipe.
 // It first starts a separate go routine that will continously run
 // the input stream and send all it's contents to the `input` channel.
 // The current thread is left with reading from the output channel.
 func PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B] {
-	return func (stmA Stream[A]) Stream[B] {
+	return func(stmA Stream[A]) Stream[B] {
 		return FlatMap(
 			Eval(io.FireAndForget(ToChannel(stmA, input))),
-			func (fun.Unit) Stream[B] {
+			func(fun.Unit) Stream[B] {
 				return FromChannel(output)
 			})
 	}

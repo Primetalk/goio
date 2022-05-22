@@ -42,6 +42,7 @@ var nats = stream.Unfold(0, func(s int) int {
 })
 var nats10 = stream.Take(nats, 10)
 var nats10Values = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
 func TestDrainAll(t *testing.T) {
 	results := []int{}
 	natsAppend := stream.MapEval(nats10, func(a int) io.IO[int] {
@@ -56,10 +57,10 @@ func TestDrainAll(t *testing.T) {
 }
 
 func TestStateFlatMap(t *testing.T) {
-	sumStream := stream.StateFlatMapWithFinish(nats10, 0, 
-		func(a int, s int) (int, stream.Stream[int]){
+	sumStream := stream.StateFlatMapWithFinish(nats10, 0,
+		func(a int, s int) (int, stream.Stream[int]) {
 			return s + a, stream.Empty[int]()
-		}, 
+		},
 		func(lastState int) stream.Stream[int] {
 			return stream.Lift(lastState)
 		})
