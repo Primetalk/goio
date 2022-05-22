@@ -141,7 +141,8 @@ Implementation is immutable, so we have to maintain the updated stream along the
 
 The following functions could be used to create a new stream:
 
-- `stream.Empty[A any]()Stream[A]`
+- `stream.Empty[A any]()Stream[A]` - returns an empty stream.
+- `stream.EmptyUnit() Stream[fun.Unit]` - returns an empty stream of units. It's more performant than `Empty[Unit]` because the same instance is being used.
 - `stream.FromSlice[A any](as []A) Stream[A]`
 - `stream.Lift[A any](a A) Stream[A]`
 - `stream.LiftMany[A any](as ...A) Stream[A]`

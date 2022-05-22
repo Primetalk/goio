@@ -1,10 +1,21 @@
 package stream
 
-import "github.com/primetalk/goio/io"
+import (
+	"github.com/primetalk/goio/fun"
+	"github.com/primetalk/goio/io"
+)
 
 // Empty returns an empty stream.
 func Empty[A any]() Stream[A] {
 	return io.Pure(func() StepResult[A] { return NewStepResultFinished[A]() })
+}
+
+var empty = Empty[fun.Unit]()
+
+// EmptyUnit returns an empty stream of units.
+// It's more performant because the same instance is being used.
+func EmptyUnit() Stream[fun.Unit] {
+	return empty
 }
 
 // Eval returns a stream of one value that is the result of IO.
