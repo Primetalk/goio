@@ -75,3 +75,8 @@ func ToSet[A comparable](as []A) (s Set[A]) {
 	}
 	return
 }
+
+// SetSize returns the size of the set.
+func SetSize[A comparable](s Set[A]) int {
+	return len(s)
+}

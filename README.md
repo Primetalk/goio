@@ -233,7 +233,11 @@ We can convert a slice to a set:
 
 Where the `Set` type is defined as follows:
 
-- `slice.type Set[A comparable] map[A]struct{}`
+- `type Set[A comparable] map[A]struct{}`
+
+And we can perform some operations with sets:
+
+- `slice.SetSize[A comparable](s Set[A]) int` - SetSize returns the size of the set.
 
 ### Slices of numbers
 
