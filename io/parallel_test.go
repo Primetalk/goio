@@ -22,13 +22,3 @@ func TestParallel(t *testing.T) {
 	assert.Equal(t, results[0], "a")
 	assert.WithinDuration(t, end, start, 200*time.Millisecond)
 }
-
-func TestTimeout(t *testing.T) {
-	start := time.Now()
-	sleep1000ms := io.SleepA(1000*time.Millisecond, "a")
-	atMost100ms := io.WithTimeout[string](100 * time.Millisecond)(sleep1000ms)
-	_, err := io.UnsafeRunSync(atMost100ms)
-	assert.Equal(t, err, io.ErrorTimeout)
-	end := time.Now()
-	assert.WithinDuration(t, end, start, 200*time.Millisecond)
-}
