@@ -12,14 +12,17 @@ func ToChannel[A any](ch chan A) func(A) IO[fun.Unit] {
 	}
 }
 
+// CloseChannel is an IO that closes the given channel.
+func CloseChannel[A any](ch chan A) IO[fun.Unit] {
+	return FromUnit(func() error {
+		close(ch)
+		return nil
+	})
+}
 // ToChannelAndClose sends the value to the channel and then closes the channel.
 func ToChannelAndClose[A any](ch chan A) func(A) IO[fun.Unit] {
 	return func(a A) IO[fun.Unit] {
-		return FromUnit(func() error {
-			ch <- a
-			close(ch)
-			return nil
-		})
+		return AndThen(ToChannel(ch)(a), CloseChannel(ch))
 	}
 }
 
