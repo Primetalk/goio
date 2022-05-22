@@ -1,5 +1,7 @@
 # Implementation of IO using go1.18 generics
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/Primetalk/goio.svg)](https://pkg.go.dev/github.com/Primetalk/goio)[![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
+
 ## Functions
 
 Some general functions that are sometimes useful.
