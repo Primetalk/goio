@@ -19,3 +19,14 @@ func TestIO(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, res, 30)
 }
+
+func TestErr(t *testing.T) {
+	var ptr *string = nil
+	ptrio := io.Lift(ptr)
+	uptr := io.FlatMap(ptrio, io.Unptr[string])
+	_, err := io.UnsafeRunSync(uptr)
+	assert.Equal(t, io.ErrorNPE, err)
+	wrappedUptr := io.Wrapf(uptr, "my message %d", 10)
+	_, err = io.UnsafeRunSync(wrappedUptr)
+	assert.Equal(t, "my message 10: nil pointer", err.Error())
+}

@@ -241,10 +241,11 @@ func SequenceUnit(ious []IOUnit) (res IOUnit) {
 	return
 }
 
+var ErrorNPE = errors.New("nil pointer")
 // Unptr retrieves the value at pointer. Fails if nil
 func Unptr[A any](ptra *A) IO[A] {
 	if ptra == nil {
-		return Fail[A](errors.New("nil pointer"))
+		return Fail[A](ErrorNPE)
 	} else {
 		return Lift(*ptra)
 	}
