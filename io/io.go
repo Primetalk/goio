@@ -1,3 +1,4 @@
+// Package io implements IO tools similar to what is available in Scala cats library (and Haskell IO).
 package io
 
 import (
@@ -5,10 +6,15 @@ import (
 	"github.com/primetalk/goio/fun"
 )
 
+// IO[A] represents a calculation that will yield a value of type A once executed.
+// The calculation might as well fail.
+// It is designed to not panic ever.
 type IO[A any] interface {
 	unsafeRun() (A, error)
 }
 
+// GoResult[A] is a data structure that represents the Go-style result of a function that
+// could fail.
 type GoResult[A any] struct {
 	Value A
 	Error error
@@ -19,6 +25,7 @@ func (e GoResult[A]) unsafeRun() (res A, err error) {
 	return e.Value, e.Error
 }
 
+// LiftPair[A] constructs an IO from constant values.
 func LiftPair[A any](a A, err error) IO[A] {
 	return GoResult[A]{
 		Value: a,
@@ -26,11 +33,13 @@ func LiftPair[A any](a A, err error) IO[A] {
 	}
 }
 
+// UnsafeRunSync runs the given IO[A] synchronously and returns the result.
 func UnsafeRunSync[A any](io IO[A]) (res A, err error) {
 	defer RecoverToErrorVar("UnsafeRunSync", &err)
 	return io.unsafeRun()
 }
 
+// Delay[A] wraps a function that will then return an IO.
 func Delay[A any](f func() IO[A]) IO[A] {
 	return delayImpl[A]{
 		f: f,
@@ -46,6 +55,8 @@ func (i delayImpl[A]) unsafeRun() (a A, err error) {
 	return i.f().unsafeRun()
 }
 
+// Eval[A] constructs an IO[A] from a simple function that might fail.
+// If there is panic in the function, it's recovered from and represented as an error.
 func Eval[A any](f func() (A, error)) IO[A] {
 	return evalImpl[A]{
 		f: f,
@@ -61,18 +72,21 @@ func (e evalImpl[A]) unsafeRun() (res A, err error) {
 	return e.f()
 }
 
+// FromUnit consturcts IO[fun.Unit] from a simple function that might fail.
 func FromUnit(f func() error) IO[fun.Unit] {
 	return Eval(func() (fun.Unit, error) {
 		return fun.Unit1, f()
 	})
 }
 
+// Pure[A] constructs an IO[A] from a function that cannot fail.
 func Pure[A any](f func() A) IO[A] {
 	return Eval(func() (A, error) {
 		return f(), nil
 	})
 }
 
+// MapErr maps the result of IO[A] using a function that might fail.
 func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 	return mapImpl[A, B]{
 		io: ioA,
@@ -80,6 +94,7 @@ func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 	}
 }
 
+// Map converts the IO[A] result using the provided function that cannot fail.
 func Map[A any, B any](ioA IO[A], f func(a A) B) IO[B] {
 	return mapImpl[A, B]{
 		io: ioA,
@@ -102,6 +117,8 @@ func (e mapImpl[A, B]) unsafeRun() (res B, err error) {
 	return
 }
 
+// FlatMap converts the result of IO[A] using a function that itself returns an IO[B].
+// It'll fail if any of IO[A] or IO[B] fail.
 func FlatMap[A any, B any](ioA IO[A], f func(a A) IO[B]) IO[B] {
 	return flatMapImpl[A, B]{
 		io: ioA,
@@ -124,6 +141,8 @@ func (e flatMapImpl[A, B]) unsafeRun() (res B, err error) {
 	return
 }
 
+// FlatMapErr converts IO[A] result using a function that might fail.
+// It seems to be identical to MapErr.
 func FlatMapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 	return flatMapImpl[A, B]{
 		io: ioA,
@@ -137,15 +156,19 @@ func AndThen[A any, B any](ioa IO[A], iob IO[B]) IO[B] {
 		return iob
 	})
 }
+
+// Lift[A] constructs an IO[A] from a constant value.
 func Lift[A any](a A) IO[A] {
 	return LiftPair(a, nil)
 }
 
+// Fail[A] constructs an IO[A] that fails with the given error.
 func Fail[A any](err error) IO[A] {
 	var a A
 	return LiftPair(a, err)
 }
 
+// Fold performs different calculations based on whether IO[A] failed or succeeded.
 func Fold[A any, B any](io IO[A], f func(a A) IO[B], recover func(error) IO[B]) IO[B] {
 	return Delay(func() IO[B] {
 		var a A
@@ -178,6 +201,7 @@ func UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A] {
 	return MapErr(iogr, func(gr GoResult[A]) (A, error) { return gr.Value, gr.Error })
 }
 
+// FoldErr folds IO using simple Go-style functions that might fail.
 func FoldErr[A any, B any](io IO[A], f func(a A) (B, error), recover func(error) (B, error)) IO[B] {
 	return Eval(func() (b B, err error) {
 		var a A
@@ -190,10 +214,13 @@ func FoldErr[A any, B any](io IO[A], f func(a A) (B, error), recover func(error)
 	})
 }
 
+// Recover handles a potential error from IO. It does not fail itself.
 func Recover[A any](io IO[A], recover func(err error) IO[A]) IO[A] {
 	return Fold(io, Lift[A], recover)
 }
 
+// Sequence takes a slice of IOs and returns an IO that will contain a slice of results.
+// It'll fail if any of the internal computations fail.
 func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
 	res = Lift([]A{})
 	for _, iou := range ioas {
@@ -204,6 +231,8 @@ func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
 	return
 }
 
+// SequenceUnit takes a slice of IO units and returns IO that executes all of them.
+// It'll fail if any of the internal computations fail.
 func SequenceUnit(ious []IOUnit) (res IOUnit) {
 	res = IOUnit1
 	for _, iou := range ious {
@@ -228,8 +257,10 @@ func Wrapf[A any](io IO[A], format string, args ...interface{}) IO[A] {
 	})
 }
 
+// IOUnit1 is a IO[Unit] that will always return Unit1.
 var IOUnit1 = Lift(fun.Unit1)
 
+// IOUnit is IO[Unit]
 type IOUnit = IO[fun.Unit]
 
 // ForEach calls the provided callback after IO is completed.

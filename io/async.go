@@ -1,7 +1,10 @@
 package io
 
+// Callback[A] is a function that takes A and error. A is only valid if error is nil.
 type Callback[A any] func(A, error)
 
+// Async[A] constructs an IO given a function that will eventually call a callback.
+// Internally this function creates a channel and blocks on in until the function calls it.
 func Async[A any](k func(Callback[A])) IO[A] {
 	return asyncImpl[A]{k}
 }

@@ -4,6 +4,9 @@ import (
 	"github.com/primetalk/goio/fun"
 )
 
+// Fiber[A] is a type safe representation of Go routine.
+// One might Join() and receive the result of the go routine.
+// After Close() subsequent joins will fail.
 type Fiber[A any] interface {
 	// Join waits for results of the fiber.
 	// When fiber completes, this IO will complete and return the result.
