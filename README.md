@@ -1,5 +1,5 @@
 # Implementation of IO, Stream, Fiber using go1.18 generics
-![Coverage](https://img.shields.io/badge/Coverage-58.4%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-62.9%25-yellow)
 [![Go Reference](https://pkg.go.dev/badge/github.com/primetalk/goio.svg)](https://pkg.go.dev/github.com/primetalk/goio)
 [![GoDoc](https://godoc.org/github.com/primetalk/goio?status.svg)](https://godoc.org/github.com/primetalk/goio)
 [![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
