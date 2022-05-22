@@ -1,5 +1,14 @@
 # Implementation of IO, Stream, Fiber using go1.18 generics
-![Coverage](https://img.shields.io/badge/Coverage-58.4%25-yellow)[![Go Reference](https://pkg.go.dev/badge/github.com/primetalk/goio.svg)](https://pkg.go.dev/github.com/primetalk/goio)[![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
+![Coverage](https://img.shields.io/badge/Coverage-58.4%25-yellow)
+[![Go Reference](https://pkg.go.dev/badge/github.com/primetalk/goio.svg)](https://pkg.go.dev/github.com/primetalk/goio)
+[![GoDoc](https://godoc.org/github.com/primetalk/goio?status.svg)](https://godoc.org/github.com/primetalk/goio)
+[![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
+[![Version Badge](https://img.shields.io/github/v/tag/primetalk/goio)](https://img.shields.io/github/v/tag/primetalk/goio)
+
+This library is an attempt to fill the gap of a decent generics streaming libraries in Go lang. The existing alternatives do not yet use Go 1.18 generics to their full potential.
+
+The design is inspired by awesome Scala libraries [cats-effect](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/).
+
 
 ## Functions
 
@@ -15,6 +24,7 @@ Some general functions that are sometimes useful.
 - `fun.Unit` - type that has only one instance
 - `fun.Unit1` - the instance of the Unit type
 
+- `fun.Pair[A,B]` - type that represents both A and B.
 - `fun.Either[A,B]` - type that represents either A or B.
 
 - `fun.Left[A any, B any](a A) Either[A, B]`
