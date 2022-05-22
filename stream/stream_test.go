@@ -28,12 +28,12 @@ func TestGenerate(t *testing.T) {
 	})
 
 	res, err := io.UnsafeRunSync(stream.Head(powers2))
-	assert.Equal(t, nil, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, res)
 
 	powers2_10 := stream.Drop(powers2, 9)
 	res, err = io.UnsafeRunSync(stream.Head(powers2_10))
-	assert.Equal(t, nil, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1024, res)
 }
 
@@ -41,7 +41,7 @@ var nats = stream.Unfold(0, func(s int) int {
 	return s + 1
 })
 var nats10 = stream.Take(nats, 10)
-	
+var nats10Values = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 func TestDrainAll(t *testing.T) {
 	results := []int{}
 	natsAppend := stream.MapEval(nats10, func(a int) io.IO[int] {
@@ -52,7 +52,7 @@ func TestDrainAll(t *testing.T) {
 	})
 	_, err := io.UnsafeRunSync(stream.DrainAll(natsAppend))
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, results, []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+	assert.ElementsMatch(t, results, nats10Values)
 }
 
 func TestStateFlatMap(t *testing.T) {
