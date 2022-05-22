@@ -54,7 +54,7 @@ func Notify[A any](d time.Duration, value A, cb Callback[A]) IO[fun.Unit] {
 
 // NotifyToChannel sends message to channel after specified duration.
 func NotifyToChannel[A any](d time.Duration, value A, ch chan A) IO[fun.Unit] {
-	return Notify(d, value, func (str A, err error) {
+	return Notify(d, value, func(str A, err error) {
 		ch <- value
 	})
 }
