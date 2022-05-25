@@ -239,6 +239,7 @@ Some utilities that are convenient when working with slices.
 - `slice.GroupBy[A any, K comparable](as []A, f func(A)K) (res map[K][]A)` - GroupBy groups elements by a function that returns a key.
 - `slice.Sliding[A any](as []A, size int, step int) (res [][]A)` - Sliding splits the provided slice into windows.  Each window will have the given size.  The first window starts from offset = 0. Each consequtive window starts at prev_offset + step. Last window might very well be shorter.
 - `slice.Grouped[A any](as []A, size int) (res [][]A)` - Grouped partitions the slice into groups of the given size. Last partition might be smaller.
+- `slice.Len[A any](as []A) int` Len returns the length of the slice. This is a normal function that can be passed around unlike the built-in `len`.
 
 We can convert a slice to a set:
 

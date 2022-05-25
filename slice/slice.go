@@ -136,3 +136,9 @@ func MapValues[K comparable, A any, B any](m map[K]A, f func(A) B) (res map[K]B)
 	}
 	return
 }
+
+// Len returns the length of the slice.
+// This is a normal function that can be passed around unlike the built-in `len`.
+func Len[A any](as []A) int {
+	return len(as)
+}
