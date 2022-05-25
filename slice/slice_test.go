@@ -51,9 +51,9 @@ func TestGroupBy(t *testing.T) {
 
 func TestSliding(t *testing.T) {
 	intWindows := slice.Sliding(nats10Values, 3, 2)
-	assert.ElementsMatch(t, intWindows[4], []int{9,10})
+	assert.ElementsMatch(t, intWindows[4], []int{9, 10})
 	intWindows = slice.Sliding(nats10Values, 2, 5)
-	assert.ElementsMatch(t, intWindows[1], []int{6,7})
+	assert.ElementsMatch(t, intWindows[1], []int{6, 7})
 }
 
 func TestGrouped(t *testing.T) {
