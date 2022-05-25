@@ -1,6 +1,7 @@
 package io_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/primetalk/goio/io"
@@ -29,4 +30,14 @@ func TestErr(t *testing.T) {
 	wrappedUptr := io.Wrapf(uptr, "my message %d", 10)
 	_, err = io.UnsafeRunSync(wrappedUptr)
 	assert.Equal(t, "my message 10: nil pointer", err.Error())
+}
+
+func TestFinally(t *testing.T) {
+	errorMessage := "on purpose failure"
+	failure := io.Fail[string](errors.New(errorMessage))
+	finalizerExecuted := false
+	fin := io.Finally(failure, io.FromRun(func() { finalizerExecuted = true }))
+	_, err := io.UnsafeRunSync(fin)
+	assert.Error(t, err, errorMessage)
+	assert.True(t, finalizerExecuted)
 }

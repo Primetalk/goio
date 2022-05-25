@@ -2,6 +2,8 @@
 package io
 
 import (
+	"log"
+
 	"github.com/pkg/errors"
 	"github.com/primetalk/goio/fun"
 )
@@ -70,6 +72,14 @@ type evalImpl[A any] struct {
 func (e evalImpl[A]) unsafeRun() (res A, err error) {
 	defer RecoverToErrorVar("Eval.unsafeRun", &err)
 	return e.f()
+}
+
+// FromPureEffect constructs IO from the simplest function signature.
+func FromPureEffect(f func()) IO[fun.Unit] {
+	return Eval(func() (fun.Unit, error) {
+		f()
+		return fun.Unit1, nil
+	})
 }
 
 // FromUnit consturcts IO[fun.Unit] from a simple function that might fail.
@@ -271,4 +281,24 @@ func ForEach[A any](io IO[A], cb func(a A)) IO[fun.Unit] {
 		cb(a)
 		return fun.Unit1
 	})
+}
+
+// Finally runs the finalizer regardless of the success of the IO.
+// In case finalizer fails as well, the second error is printed to log.
+func Finally[A any](io IO[A], finalizer IO[fun.Unit]) IO[A] {
+	return Fold(io,
+		func(a A) IO[A] {
+			return Map(finalizer, fun.ConstUnit(a))
+		},
+		func(err error) IO[A] {
+			return Fold(finalizer,
+				func(fun.Unit) IO[A] {
+					return Fail[A](err)
+				},
+				func(err2 error) IO[A] {
+					log.Printf("double error during Finally: %+v", err2)
+					return Fail[A](err)
+				})
+
+		})
 }
