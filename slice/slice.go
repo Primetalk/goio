@@ -129,7 +129,7 @@ func Grouped[A any](as []A, size int) (res [][]A) {
 }
 
 // MapValues converts values in the map using the provided function.
-func MapValues[K comparable, A any, B any](m map[K]A, f func(A)B) (res map[K]B) {
+func MapValues[K comparable, A any, B any](m map[K]A, f func(A) B) (res map[K]B) {
 	res = make(map[K]B, len(m))
 	for k, a := range m {
 		res[k] = f(a)
