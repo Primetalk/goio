@@ -36,7 +36,7 @@ func TestFinally(t *testing.T) {
 	errorMessage := "on purpose failure"
 	failure := io.Fail[string](errors.New(errorMessage))
 	finalizerExecuted := false
-	fin := io.Finally(failure, io.FromRun(func() { finalizerExecuted = true }))
+	fin := io.Finally(failure, io.FromPureEffect(func() { finalizerExecuted = true }))
 	_, err := io.UnsafeRunSync(fin)
 	assert.Error(t, err, errorMessage)
 	assert.True(t, finalizerExecuted)
