@@ -6,6 +6,7 @@ package stream
 import (
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
+	"github.com/primetalk/goio/slice"
 )
 
 // Stream is modelled as a function that performs a single step in the state machine.
@@ -152,7 +153,7 @@ func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A], zero S, f func(a
 				stmb := AndThenLazy(stmb1, func() Stream[B] { return StateFlatMapWithFinish(sra.Continuation, st, f, onFinish) })
 				iores = stmb
 			} else {
-				iores = io.Lift(NewStepResultEmpty(StateFlatMap(sra.Continuation, zero, f)))
+				iores = io.Lift(NewStepResultEmpty(StateFlatMapWithFinish(sra.Continuation, zero, f, onFinish)))
 			}
 			return
 		})
@@ -165,7 +166,7 @@ func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 		stm,
 		func(sra StepResult[A]) StepResult[A] {
 			if sra.IsFinished {
-				return NewStepResultFinished[A]()
+				return sra
 			} else {
 				cont := Filter(sra.Continuation, predicate)
 				if sra.HasValue && predicate(sra.Value) {
@@ -175,4 +176,21 @@ func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 				}
 			}
 		})
+}
+
+// Sum is a pipe that returns a stream of 1 element that is sum of all elements of the original stream.
+func Sum[A slice.Number](sa Stream[A]) Stream[A] {
+	var zero A
+	return StateFlatMapWithFinish(sa, zero,
+		func(a A, s A) (A, Stream[A]) {
+			return s + a, Empty[A]()
+		},
+		func(lastState A) Stream[A] {
+			return Lift(lastState)
+		})
+}
+
+// Len is a pipe that returns a stream of 1 element that is the count of elements of the original stream.
+func Len[A any](sa Stream[A]) Stream[int] {
+	return Sum(Map(sa, fun.Const[A](1)))
 }

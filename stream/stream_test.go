@@ -36,27 +36,48 @@ func TestGenerate(t *testing.T) {
 
 func TestDrainAll(t *testing.T) {
 	results := []int{}
-	natsAppend := stream.MapEval(nats10, func(a int) io.IO[int] {
-		return io.Eval(func() (int, error) {
-			results = append(results, a)
-			return a, nil
+	natsAppend := stream.MapEval(
+		stream.Take(stream.Repeat(nats10), 10),
+		func(a int) io.IO[int] {
+			return io.Eval(func() (int, error) {
+				results = append(results, a)
+				return a, nil
+			})
 		})
-	})
 	_, err := io.UnsafeRunSync(stream.DrainAll(natsAppend))
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, results, nats10Values)
 }
 
 func TestStateFlatMap(t *testing.T) {
-	sumStream := stream.StateFlatMapWithFinish(nats10, 0,
-		func(a int, s int) (int, stream.Stream[int]) {
-			return s + a, stream.Empty[int]()
-		},
-		func(lastState int) stream.Stream[int] {
-			return stream.Lift(lastState)
-		})
+	sumStream := stream.Sum(nats10)
 	ioSum := stream.Head(sumStream)
 	sum, err := io.UnsafeRunSync(ioSum)
 	assert.NoError(t, err)
 	assert.Equal(t, 55, sum)
+}
+
+func isEven(i int) bool {
+	return i%2 == 0
+}
+
+func TestFlatMapPipe(t *testing.T) {
+	natsRepeated := stream.FlatMapPipe(func(i int) stream.Stream[int] {
+		return stream.MapPipe(func(j int) int {
+			return i + j
+		})(nats10)
+	})(nats10)
+
+	ioLen := stream.Head(stream.Len(natsRepeated))
+	len, err := io.UnsafeRunSync(ioLen)
+	assert.NoError(t, err)
+	assert.Equal(t, 100, len)
+
+	filtered := stream.Filter(natsRepeated, isEven)
+	sumStream := stream.Sum(filtered)
+	ioSum := stream.Head(sumStream)
+	var sum int
+	sum, err = io.UnsafeRunSync(ioSum)
+	assert.NoError(t, err)
+	assert.Equal(t, 550, sum)
 }
