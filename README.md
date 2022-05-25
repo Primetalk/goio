@@ -252,6 +252,10 @@ And we can perform some operations with sets:
 
 - `slice.SetSize[A comparable](s Set[A]) int` - SetSize returns the size of the set.
 
+And some with arbitrary maps:
+
+- `slice.MapValues[K comparable, A any, B any](m map[K]A, f func(A)B) (res map[K]B)` - MapValues converts values in the map using the provided function.
+
 ### Slices of numbers
 
 Numbers support numerical operations. In generics this require defining an interface:
