@@ -55,15 +55,15 @@ func PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B] 
 // PipeToPairOfChannels converts a streaming pipe to a pair of channels that could be used
 // to interact with external systems.
 func PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, chan B]] {
-	return io.Delay(func()io.IO[fun.Pair[chan A, chan B]]{
+	return io.Delay(func() io.IO[fun.Pair[chan A, chan B]] {
 
 		input := make(chan A)
 		output := make(chan B)
 		inputStream := FromChannel(input)
 		outputStream := pipe(inputStream)
-		
+
 		return io.AndThen(
-			io.FireAndForget(ToChannel(outputStream, output)), 
+			io.FireAndForget(ToChannel(outputStream, output)),
 			io.Lift(fun.Pair[chan A, chan B]{V1: input, V2: output}),
 		)
 	})

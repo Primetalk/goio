@@ -52,7 +52,7 @@ func TestTextStreamWrite(t *testing.T) {
 }
 
 func TestFile(t *testing.T) {
-	path := t.TempDir()+"/hello.txt"
+	path := t.TempDir() + "/hello.txt"
 	content := "hello"
 	err := os.WriteFile(path, []byte(content), fs.ModePerm)
 	assert.NoError(t, err)

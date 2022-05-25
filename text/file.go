@@ -11,11 +11,11 @@ import (
 // ReadOnlyFile returns a resource for the specified filename.
 func ReadOnlyFile(name string) resource.Resource[*os.File] {
 	return resource.NewResource(
-		io.Eval( func () (*os.File, error) {
+		io.Eval(func() (*os.File, error) {
 			return os.Open(name)
 		}),
 		func(f *os.File) io.IO[fun.Unit] {
-			return io.FromUnit(func() (error) {
+			return io.FromUnit(func() error {
 				return f.Close()
 			})
 		},
