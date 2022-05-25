@@ -64,6 +64,11 @@ func Flatten[A any](ass [][]A) (aas []A) {
 	return
 }
 
+// AppendAll concatenates all slices.
+func AppendAll[A any](ass ...[]A) (aas []A) {
+	return Flatten(ass)
+}
+
 // Set is a way to represent sets in Go.
 type Set[A comparable] map[A]struct{}
 
@@ -79,4 +84,46 @@ func ToSet[A comparable](as []A) (s Set[A]) {
 // SetSize returns the size of the set.
 func SetSize[A comparable](s Set[A]) int {
 	return len(s)
+}
+
+// GroupBy groups elements by a function that returns a key.
+func GroupBy[A any, K comparable](as []A, f func(A)K) (res map[K][]A) {
+	res = make(map[K][]A, len(as))
+	for _, a := range as {
+		k := f(a)
+		sl, ok := res[k]
+		if ok {
+			sl = append(sl, a)
+			res[k] = sl
+		} else {
+			res[k] = []A{a}
+		}
+	}
+	return
+}
+
+// Sliding splits the provided slice into windows. 
+// Each window will have the given size. 
+// The first window starts from offset = 0.
+// Each consequtive window starts at prev_offset + step.
+// Last window might very well be shorter.
+func Sliding[A any](as []A, size int, step int) (res [][]A) {
+	for offset :=0; offset < len(as); offset += step {
+		high := offset+size
+		if high > len(as) {
+			high = len(as)
+		}
+		slice1 := as[offset:high]
+		res = append(res, slice1)
+		if high == len(as) {
+			break
+		}
+	}
+	return
+}
+
+// Grouped partitions the slice into groups of the given size.
+// Last partition might be smaller.
+func Grouped[A any](as []A, size int) (res [][]A) {
+	return Sliding(as, size, size)
 }
