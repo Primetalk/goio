@@ -74,6 +74,13 @@ func Map[A any, B any](stm Stream[A], f func(a A) B) Stream[B] {
 	return MapEval(stm, func(a A) io.IO[B] { return io.Lift(f(a)) })
 }
 
+// MapPipe creates a pipe that maps one stream through the provided function.
+func MapPipe[A any, B any](f func(a A) B) Pipe[A, B] {
+	return func(sa Stream[A]) Stream[B] {
+		return Map(sa, f)
+	}
+}
+
 // AndThen appends another stream after the end of the first one.
 func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 	return AndThenLazy(stm1, func() Stream[A] { return stm2 })
@@ -112,6 +119,13 @@ func FlatMap[A any, B any](stm Stream[A], f func(a A) Stream[B]) Stream[B] {
 				return io.Lift(NewStepResultEmpty(FlatMap(sra.Continuation, f)))
 			}
 		})
+}
+
+// FlatMapPipe creates a pipe that flatmaps one stream through the provided function.
+func FlatMapPipe[A any, B any](f func(a A) Stream[B]) Pipe[A, B] {
+	return func(sa Stream[A]) Stream[B] {
+		return FlatMap(sa, f)
+	}
 }
 
 // Flatten simplifies a stream of streams to just the stream of values by concatenating all
