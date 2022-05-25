@@ -2,10 +2,14 @@ package text_test
 
 import (
 	"bytes"
+	fio "io"
+	"io/fs"
+	"os"
 	"testing"
 
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
+	"github.com/primetalk/goio/resource"
 	"github.com/primetalk/goio/stream"
 	"github.com/primetalk/goio/text"
 	"github.com/stretchr/testify/assert"
@@ -45,4 +49,25 @@ func TestTextStreamWrite(t *testing.T) {
 6
 7
 `, w.String())
+}
+
+func TestFile(t *testing.T) {
+	path := t.TempDir()+"/hello.txt"
+	content := "hello"
+	err := os.WriteFile(path, []byte(content), fs.ModePerm)
+	assert.NoError(t, err)
+	contentIO := resource.Use(text.ReadOnlyFile(path), func(f *os.File) io.IO[string] {
+		return io.Eval(func() (str string, err error) {
+			var bytes []byte
+			bytes, err = fio.ReadAll(f)
+			if err == nil {
+				str = string(bytes)
+			}
+			return
+		})
+	})
+	var str string
+	str, err = io.UnsafeRunSync(contentIO)
+	assert.NoError(t, err)
+	assert.Equal(t, content, str)
 }

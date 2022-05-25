@@ -221,6 +221,7 @@ Reading and writing large text files line-by-line.
 
 - `text.ReadLines(reader fio.Reader) stream.Stream[string]`
 - `text.WriteLines(writer fio.Writer) stream.Sink[string]`
+- `text.ReadOnlyFile(name string) resource.Resource[*os.File]` returns a resource for the file.
 
 ## Slice utilities
 
