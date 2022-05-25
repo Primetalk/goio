@@ -1,7 +1,6 @@
 package stream_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/primetalk/goio/io"
@@ -14,13 +13,11 @@ func TestStream(t *testing.T) {
 	_, err := io.UnsafeRunSync(stream.DrainAll(empty))
 	assert.Equal(t, nil, err)
 	stream10_12 := stream.LiftMany(10, 11, 12)
-	stream20_24 := stream.Map(stream10_12, func(i int) int { return i * 2 })
+	stream20_24 := Mul2(stream10_12)
 	res, err := io.UnsafeRunSync(stream.ToSlice(stream20_24))
 	assert.Equal(t, nil, err)
 	assert.Equal(t, []int{20, 22, 24}, res)
 }
-
-var printInt = stream.NewSink(func(i int) { fmt.Printf("%d", i) })
 
 func TestGenerate(t *testing.T) {
 	powers2 := stream.Unfold(1, func(s int) int {
@@ -36,12 +33,6 @@ func TestGenerate(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1024, res)
 }
-
-var nats = stream.Unfold(0, func(s int) int {
-	return s + 1
-})
-var nats10 = stream.Take(nats, 10)
-var nats10Values = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 func TestDrainAll(t *testing.T) {
 	results := []int{}
