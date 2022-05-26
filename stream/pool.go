@@ -8,6 +8,7 @@ import (
 
 // Pool is a pipe capable of running tasks in parallel.
 type Pool[A any] Pipe[io.IO[A], io.GoResult[A]]
+
 // NewPool creates an execution pool that will execute tasks concurrently.
 // Simultaneously there could be as many as size executions.
 func NewPool[A any](size int) io.IO[Pool[A]] {
@@ -15,7 +16,7 @@ func NewPool[A any](size int) io.IO[Pool[A]] {
 		input := make(chan io.IO[A])
 		output := make(chan io.GoResult[A])
 		completedExecutorIds := make(chan int)
-		executor := func (id int) {
+		executor := func(id int) {
 			for i := range input {
 				fmt.Println("received task")
 				result := io.RunSync(i)
@@ -30,7 +31,7 @@ func NewPool[A any](size int) io.IO[Pool[A]] {
 		}
 		go func() {
 			for i := 0; i < size; i++ {
-				id := <- completedExecutorIds
+				id := <-completedExecutorIds
 				fmt.Println("executor completed: ", id)
 			}
 			close(output)
@@ -41,6 +42,6 @@ func NewPool[A any](size int) io.IO[Pool[A]] {
 }
 
 // ThroughPool runs a stream of tasks through the pool.
-func ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]]{
+func ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]] {
 	return Through(sa, Pipe[io.IO[A], io.GoResult[A]](pool))
 }

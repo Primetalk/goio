@@ -22,7 +22,7 @@ func TestPool(t *testing.T) {
 
 	poolIO := stream.NewPool[int](10)
 
-	resultsIO := io.FlatMap(poolIO, func(pool stream.Pool[int]) io.IO[[]int]{
+	resultsIO := io.FlatMap(poolIO, func(pool stream.Pool[int]) io.IO[[]int] {
 		sleepResults := stream.ThroughPool(sleepTasks100, pool)
 		resultStream := stream.MapEval(sleepResults, io.FromConstantGoResult[int])
 		return stream.ToSlice(resultStream)
@@ -31,5 +31,5 @@ func TestPool(t *testing.T) {
 	results, err := io.UnsafeRunSync(resultsIO)
 	assert.NoError(t, err)
 	assert.Equal(t, 100, slice.SetSize(slice.ToSet(results)))
-	assert.WithinDuration(t, start, time.Now(), 200 * time.Millisecond)
+	assert.WithinDuration(t, start, time.Now(), 200*time.Millisecond)
 }
