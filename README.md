@@ -221,6 +221,17 @@ We sometimes want to intersperse the stream with some separators.
 
 - `stream.AddSeparatorAfterEachElement[A any](stm Stream[A], sep A) Stream[A]`
 
+### Parallel computing in streams
+
+There is `io.Parallel` that allows to run a slice of IOs in parallel. It's not very convenient
+when we have a lot of incoming requests that we wish to execute with a certain concurrency level
+(to not exceed a receiver capacity).
+In this case we can represent the tasks as ordinary `IO` and have a stream of tasks `Stream[IO[A]]`. The evaluation results could be represented as `GoResult[A]`.
+We may wish to execute these tasks using a pool of workers of a given size.
+
+- `stream.NewPool[A any](size int) io.IO[Pool[A]]` - NewPool creates an execution pool that will execute tasks concurrently. Simultaneously there could be as many as size executions.
+- `stream.ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]]` - ThroughPool runs a stream of tasks through the pool.
+
 ## Text processing
 
 Reading and writing large text files line-by-line.
