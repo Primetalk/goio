@@ -41,6 +41,12 @@ func UnsafeRunSync[A any](io IO[A]) (res A, err error) {
 	return io.unsafeRun()
 }
 
+// RunSync is the same as UnsafeRunSync but returns GoResult[A].
+func RunSync[A any](io IO[A]) GoResult[A] {
+	a, err := UnsafeRunSync(io)
+	return GoResult[A]{Value: a, Error: err}
+}
+
 // Delay[A] wraps a function that will then return an IO.
 func Delay[A any](f func() IO[A]) IO[A] {
 	return delayImpl[A]{
@@ -94,6 +100,12 @@ func Pure[A any](f func() A) IO[A] {
 	return Eval(func() (A, error) {
 		return f(), nil
 	})
+}
+
+// FromConstantGoResult converts an existing GoResult value into a fake IO.
+// NB! This is not for normal delayed IO execution!
+func FromConstantGoResult[A any](gr GoResult[A]) IO[A] {
+	return Eval(func() (A, error) { return gr.Value, gr.Error })
 }
 
 // MapErr maps the result of IO[A] using a function that might fail.

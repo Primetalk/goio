@@ -21,6 +21,7 @@ This package provides a few general functions that are sometimes useful.
 - `fun.Identity[A any](a A) A` - Identity function returns the given value unchanged.
 - `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
 - `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`
+- `fun.Compose[A any, B any, C any](f func(A) B, g func (B) C) func (A) C` - Compose executes the given functions in sequence.
 
 There are also basic data structures - Unit, Pair and Either.
 
@@ -51,6 +52,7 @@ To construct an IO one may use the following functions:
 
 - `io.Lift[A](a A) IO[A]` - lifts a plain value to IO
 - `io.Fail[A](err error) IO[A]` - lifts an error to IO
+- `io.FromConstantGoResult[A any](gr GoResult[A]) IO[A]` - FromConstantGoResult converts an existing GoResult value into an IO. Important! This is not for normal delayed IO execution. It cannot provide any guarantee for the moment when this go result was evaluated in the first place. This is just a combination of Lift and Fail.
 - `io.Eval[A](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
 - `io.FromPureEffect(f func())IO[fun.Unit]` - FromPureEffect constructs IO from the simplest function signature.
 - `io.Delay[A any](f func()IO[A]) IO[A]` - represents a function as a plain IO
@@ -82,6 +84,7 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 
 - `io.UnsafeRunSync[A](ioa IO[A])`
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
+- `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult[A].
 
 ## Parallel computing
 
@@ -217,6 +220,17 @@ A few functions that can produce infinite stream (`Repeat`), cut the stream to k
 We sometimes want to intersperse the stream with some separators.
 
 - `stream.AddSeparatorAfterEachElement[A any](stm Stream[A], sep A) Stream[A]`
+
+### Parallel computing in streams
+
+There is `io.Parallel` that allows to run a slice of IOs in parallel. It's not very convenient
+when we have a lot of incoming requests that we wish to execute with a certain concurrency level
+(to not exceed a receiver capacity).
+In this case we can represent the tasks as ordinary `IO` and have a stream of tasks `Stream[IO[A]]`. The evaluation results could be represented as `GoResult[A]`.
+We may wish to execute these tasks using a pool of workers of a given size.
+
+- `stream.NewPool[A any](size int) io.IO[Pool[A]]` - NewPool creates an execution pool that will execute tasks concurrently. Simultaneously there could be as many as size executions.
+- `stream.ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]]` - ThroughPool runs a stream of tasks through the pool.
 
 ## Text processing
 
