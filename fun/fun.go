@@ -43,3 +43,10 @@ func Identity[A any](a A) A {
 func ToString[A any](a A) string {
 	return fmt.Sprintf("%v", a)
 }
+
+// Compose executes the given functions in sequence.
+func Compose[A any, B any, C any](f func(A) B, g func(B) C) func(A) C {
+	return func(a A) C {
+		return g(f(a))
+	}
+}

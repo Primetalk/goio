@@ -21,6 +21,7 @@ This package provides a few general functions that are sometimes useful.
 - `fun.Identity[A any](a A) A` - Identity function returns the given value unchanged.
 - `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
 - `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`
+- `fun.Compose[A any, B any, C any](f func(A) B, g func (B) C) func (A) C` - Compose executes the given functions in sequence.
 
 There are also basic data structures - Unit, Pair and Either.
 
@@ -82,6 +83,7 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 
 - `io.UnsafeRunSync[A](ioa IO[A])`
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
+- `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult[A].
 
 ## Parallel computing
 
