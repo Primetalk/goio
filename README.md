@@ -52,6 +52,7 @@ To construct an IO one may use the following functions:
 
 - `io.Lift[A](a A) IO[A]` - lifts a plain value to IO
 - `io.Fail[A](err error) IO[A]` - lifts an error to IO
+- `io.FromConstantGoResult[A any](gr GoResult[A]) IO[A]` - FromConstantGoResult converts an existing GoResult value into an IO. Important! This is not for normal delayed IO execution. It cannot provide any guarantee for the moment when this go result was evaluated in the first place. This is just a combination of Lift and Fail.
 - `io.Eval[A](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
 - `io.FromPureEffect(f func())IO[fun.Unit]` - FromPureEffect constructs IO from the simplest function signature.
 - `io.Delay[A any](f func()IO[A]) IO[A]` - represents a function as a plain IO

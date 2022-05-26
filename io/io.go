@@ -102,6 +102,12 @@ func Pure[A any](f func() A) IO[A] {
 	})
 }
 
+// FromConstantGoResult converts an existing GoResult value into a fake IO.
+// NB! This is not for normal delayed IO execution!
+func FromConstantGoResult[A any](gr GoResult[A]) IO[A] {
+	return Eval(func() (A, error) { return gr.Value, gr.Error })
+}
+
 // MapErr maps the result of IO[A] using a function that might fail.
 func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 	return mapImpl[A, B]{
