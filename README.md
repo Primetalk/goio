@@ -11,7 +11,6 @@ This library is an attempt to fill the gap of a decent generics streaming librar
 
 The design is inspired by awesome Scala libraries [cats-effect](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/).
 
-
 ## Functions
 
 This package provides a few general functions that are sometimes useful.
@@ -84,7 +83,7 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 
 - `io.UnsafeRunSync[A](ioa IO[A])`
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
-- `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult[A].
+- `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
 
 ## Parallel computing
 
