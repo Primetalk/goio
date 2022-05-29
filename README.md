@@ -26,8 +26,8 @@ There are also basic data structures - Unit, Pair and Either.
 
 - `fun.Unit` - type that has only one instance
 - `fun.Unit1` - the instance of the Unit type
-- `fun.Pair[A,B]` - type that represents both A and B.
-- `fun.Either[A,B]` - type that represents either A or B.
+- `fun.Pair[A any, B any]` - type that represents both A and B.
+- `fun.Either[A any, B any]` - type that represents either A or B.
 
 For `Either` there are a few helper functions:
 
@@ -49,10 +49,10 @@ IO encapsulates a calculation and provides a mechanism to compose a few calculat
 
 To construct an IO one may use the following functions:
 
-- `io.Lift[A](a A) IO[A]` - lifts a plain value to IO
-- `io.Fail[A](err error) IO[A]` - lifts an error to IO
+- `io.Lift[A any](a A) IO[A]` - lifts a plain value to IO
+- `io.Fail[A any](err error) IO[A]` - lifts an error to IO
 - `io.FromConstantGoResult[A any](gr GoResult[A]) IO[A]` - FromConstantGoResult converts an existing GoResult value into an IO. Important! This is not for normal delayed IO execution. It cannot provide any guarantee for the moment when this go result was evaluated in the first place. This is just a combination of Lift and Fail.
-- `io.Eval[A](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
+- `io.Eval[A any](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
 - `io.FromPureEffect(f func())IO[fun.Unit]` - FromPureEffect constructs IO from the simplest function signature.
 - `io.Delay[A any](f func()IO[A]) IO[A]` - represents a function as a plain IO
 - `io.Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) IO[B]` - handles both happy and sad paths.
@@ -62,10 +62,10 @@ To construct an IO one may use the following functions:
 
 The following functions could be used to manipulate computations:
 
-- `io.FlatMap[A, B](ioa IO[A], f func(A)IO[B]) IO[B]`
+- `io.FlatMap[A any, B any](ioa IO[A], f func(A)IO[B]) IO[B]`
 - `io.AndThen[A any, B any](ioa IO[A], iob IO[B]) IO[B]` - AndThen runs the first IO, ignores it's result and then runs the second one.
-- `io.MapPure[A, B](ioa IO[A], f func(A)B) IO[B]`
-- `io.Map[A, B](ioa IO[A], f func(A)(B, error)) IO[B]`
+- `io.Map[A any, B any](ioA IO[A], f func(a A) B) IO[B]`
+- `io.MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B]`
 - `io.Sequence[A any](ioas []IO[A]) (res IO[[]A])`
 - `io.SequenceUnit(ious []IO[Unit]) (res IOUnit)`
 - `io.Unptr[A any](ptra *A) IO[A]` - retrieves the value at pointer. Fails if nil
@@ -81,7 +81,7 @@ To and from `GoResult` - allows to handle both good value and an error:
 
 To finally run all constructed computations one may use `UnsafeRunSync` or `ForEach`:
 
-- `io.UnsafeRunSync[A](ioa IO[A])`
+- `io.UnsafeRunSync[A any](ioa IO[A])`
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
 - `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
 
