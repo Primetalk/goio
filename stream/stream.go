@@ -200,8 +200,8 @@ func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
 	return func(sa Stream[A]) Stream[[]A] {
 		return StateFlatMapWithFinish(sa, make([]A, 0, n),
 			func(a A, as []A) ([]A, Stream[[]A]) {
-				if len(as) == n {
-					return make([]A, 0, n), Lift(as)
+				if len(as) == n-1 {
+					return make([]A, 0, n), Lift(append(as, a))
 				} else {
 					return append(as, a), Empty[[]A]()
 				}
