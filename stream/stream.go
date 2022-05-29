@@ -17,9 +17,9 @@ type Stream[A any] io.IO[StepResult[A]]
 // The step result also returns the continuation of the stream.
 type StepResult[A any] struct {
 	Value        A
+	HasValue     bool // models "Option[A]"
 	Continuation Stream[A]
-	HasValue     bool
-	IsFinished   bool
+	IsFinished   bool // true when stream has completed
 }
 
 // NewStepResult constructs StepResult that has one value.
@@ -193,4 +193,22 @@ func Sum[A slice.Number](sa Stream[A]) Stream[A] {
 // Len is a pipe that returns a stream of 1 element that is the count of elements of the original stream.
 func Len[A any](sa Stream[A]) Stream[int] {
 	return Sum(Map(sa, fun.Const[A](1)))
+}
+
+// ChunkN groups elements by n and produces a stream of slices.
+func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
+	return func(sa Stream[A]) Stream[[]A] {
+		return StateFlatMapWithFinish(sa, make([]A, 0, n),
+			func(a A, as []A) ([]A, Stream[[]A]) {
+				if len(as) == n-1 {
+					return make([]A, 0, n), Lift(append(as, a))
+				} else {
+					return append(as, a), Empty[[]A]()
+				}
+			},
+			func(as []A) Stream[[]A] {
+				return Lift(as)
+			},
+		)
+	}
 }

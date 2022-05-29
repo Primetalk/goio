@@ -81,3 +81,11 @@ func TestFlatMapPipe(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 550, sum)
 }
+
+func TestChunks(t *testing.T) {
+	natsBy10 := stream.ChunkN[int](10)(stream.Take(nats, 19))
+	nats10to19IO := stream.Head(stream.Drop(natsBy10, 1))
+	nats10to19, err := io.UnsafeRunSync(nats10to19IO)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int{11, 12, 13, 14, 15, 16, 17, 18, 19}, nats10to19)
+}

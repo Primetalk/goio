@@ -213,6 +213,7 @@ A few functions that can produce infinite stream (`Repeat`), cut the stream to k
 - `stream.Repeat[A any](stm Stream[A]) Stream[A]` - infinitely repeat stream forever
 - `stream.Take[A any](stm Stream[A], n int) Stream[A]`
 - `stream.Drop[A any](stm Stream[A], n int) Stream[A]`
+- `stream.ChunkN[A any](n int)func (sa Stream[A]) Stream[[]A]` - ChunkN groups elements by n and produces a stream of slices.
 
 ### Mangling
 
