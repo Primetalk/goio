@@ -16,10 +16,14 @@ func Collect[A any](stm Stream[A], collector func(A) error) io.IO[fun.Unit] {
 			if sra.IsFinished {
 				return io.Lift(fun.Unit1)
 			} else {
+				rest := Collect(sra.Continuation, collector)
 				if sra.HasValue {
-					collector(sra.Value)
+					return io.AndThen(io.FromUnit(func() error {
+						return collector(sra.Value)
+					}), rest)
+				} else {
+					return rest
 				}
-				return Collect(sra.Continuation, collector)
 			}
 		})
 }
