@@ -212,3 +212,8 @@ func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
 		)
 	}
 }
+
+// Fail returns a stream that fails immediately.
+func Fail[A any](err error) Stream[A] {
+	return Eval(io.Fail[A](err))
+}
