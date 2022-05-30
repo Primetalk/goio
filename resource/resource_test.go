@@ -59,3 +59,30 @@ func TestChannelResource(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "hello", hello)
 }
+
+func TestResourceInResource(t *testing.T) {
+	res1 := resource.NewResource(
+		io.Lift("resource1"),
+		func(s string) io.IO[fun.Unit] {
+			assert.Equal(t, "resource1", s)
+			return io.IOUnit1
+		},
+	)
+	res2 := resource.FlatMap(res1, func(s string) resource.Resource[fun.Pair[string, string]] {
+
+		return resource.NewResource(
+			io.Lift(fun.NewPair(s, "resource2")),
+			func(p fun.Pair[string, string]) io.IO[fun.Unit] {
+				assert.Equal(t, "resource2", p.V2)
+				return io.IOUnit1
+			},
+		)
+	})
+	// res2 := resource.FlatMap(resMapped, func(i int) resource.Resource[Pair[int, ]])
+	io18 := resource.Use(res2, func(p fun.Pair[string, string]) io.IO[int] {
+		return io.Lift(len(p.V1) + len(p.V2))
+	})
+	res18, err := io.UnsafeRunSync(io18)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, res18, 18)
+}
