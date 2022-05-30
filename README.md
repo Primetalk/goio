@@ -159,6 +159,7 @@ The following functions could be used to create a new stream:
 - `stream.Unfold[A any](zero A, f func(A) A) Stream[A]` - generates an infinite stream from previous values
 - `stream.FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A]` - basic definition of a stream - IO that returns value and continuation.
 - `stream.Eval[A any](ioa io.IO[A]) Stream[A]` - Eval returns a stream of one value that is the result of IO.
+- `stream.Fail[A any](err error) Stream[A]` - Fail returns a stream that fails immediately.
 
 ### Manipulation
 
@@ -239,6 +240,7 @@ Reading and writing large text files line-by-line.
 - `text.ReadLines(reader fio.Reader) stream.Stream[string]`
 - `text.WriteLines(writer fio.Writer) stream.Sink[string]`
 - `text.ReadOnlyFile(name string) resource.Resource[*os.File]` returns a resource for the file.
+- `text.ReadLinesWithNonFinishedLine(reader fio.Reader) stream.Stream[string]` - ReadLinesWithLastNonFinishedLine reads text file line-by-line and returns the last line that is not terminated by `'\n'`.
 
 ## Slice utilities
 
