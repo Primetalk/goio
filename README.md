@@ -6,6 +6,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/primetalk/goio)](https://goreportcard.com/report/github.com/primetalk/goio)
 [![Version Badge](https://img.shields.io/github/v/tag/primetalk/goio)](https://img.shields.io/github/v/tag/primetalk/goio)
 ![Go](https://github.com/primetalk/goio/workflows/Go/badge.svg?branch=master)
+[![codecov](https://codecov.io/gh/Primetalk/goio/branch/master/graph/badge.svg?token=WXVKKB4EWO)](https://codecov.io/gh/Primetalk/goio)
 
 This library is an attempt to fill the gap of a decent generics streaming libraries in Go lang. The existing alternatives do not yet use Go 1.18 generics to their full potential.
 
