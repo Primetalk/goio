@@ -43,10 +43,10 @@ func ToChannelAndClose[A any](ch chan A) func(A) IO[fun.Unit] {
 func FromChannel[A any](ch chan A) IO[A] {
 	return Eval(func() (a A, err error) {
 		var ok bool
-		a, ok = <-ch 
+		a, ok = <-ch
 		if !ok {
 			err = errors.New("reading from a closed channel")
 		}
-		return 
+		return
 	})
 }
