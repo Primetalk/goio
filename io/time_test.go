@@ -20,15 +20,15 @@ func TestTimeout(t *testing.T) {
 
 func TestNotify(t *testing.T) {
 	start := time.Now()
-	var notificationMoment time.Time
+	notificationMoment := make(chan time.Time, 1)
 	ion := io.Notify(100*time.Millisecond, "a", func(str string, err error) {
 		assert.Equal(t, nil, err)
 
-		notificationMoment = time.Now()
+		notificationMoment <- time.Now()
 	})
 	_, err := io.UnsafeRunSync(ion)
 	assert.Equal(t, nil, err)
 	assert.WithinDuration(t, time.Now(), start, 10*time.Millisecond)
 	time.Sleep(200 * time.Millisecond)
-	assert.WithinDuration(t, notificationMoment, start, 200*time.Millisecond)
+	assert.WithinDuration(t, <-notificationMoment, start, 200*time.Millisecond)
 }
