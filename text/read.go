@@ -2,6 +2,7 @@
 package text
 
 import (
+	"errors"
 	fio "io"
 
 	"github.com/primetalk/goio/io"
@@ -21,7 +22,7 @@ func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 			if cnt == 0 {
 				res = stream.NewStepResultEmpty(stream.Empty[[]byte]())
 			} else {
-				res = stream.NewStepResult(bytes, ReadByteChunks(reader, chunkSize))
+				res = stream.NewStepResult(bytes[0:cnt], ReadByteChunks(reader, chunkSize))
 			}
 		}
 		return
@@ -31,23 +32,30 @@ func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 var emptyByteChunkStream = stream.Empty[[]byte]()
 
 // SplitBySeparator splits byte-chunk stream by the given separator.
-func SplitBySeparator(stm stream.Stream[[]byte], sep byte) stream.Stream[[]byte] {
-	return stream.StateFlatMap(stm, []byte{}, func(a []byte, s []byte) (resultState []byte, stm stream.Stream[[]byte]) {
-		parts := splitBy(sep, a, [][]byte{})
-		if len(parts) == 0 {
-			// stream finished??
-			stm = emptyByteChunkStream
-		} else if len(parts) == 1 {
-			// separator not found
-			resultState = append(s, a...)
-			stm = emptyByteChunkStream
-		} else {
-			parts[0] = append(s, parts[0]...)
-			resultState = parts[len(parts)-1]
-			stm = stream.FromSlice(parts[0 : len(parts)-1])
-		}
-		return
-	})
+func SplitBySeparator(stm stream.Stream[[]byte], sep byte, shouldReturnLastIncompleteLine bool) stream.Stream[[]byte] {
+	return stream.StateFlatMapWithFinish(stm, []byte{},
+		func(a []byte, state []byte) (resultState []byte, stm stream.Stream[[]byte]) {
+			parts := splitBy(sep, a, [][]byte{})
+			if len(parts) == 0 {
+				stm = stream.Fail[[]byte](errors.New("unexpected len==0 from splitBy"))
+			} else if len(parts) == 1 {
+				// separator not found
+				resultState = append(state, a...)
+				stm = emptyByteChunkStream
+			} else {
+				parts[0] = append(state, parts[0]...)
+				resultState = parts[len(parts)-1]
+				stm = stream.LiftMany(parts[0 : len(parts)-1]...)
+			}
+			return
+		},
+		func(s []byte) stream.Stream[[]byte] {
+			if len(s) > 0 && shouldReturnLastIncompleteLine {
+				return stream.Lift(s)
+			} else {
+				return emptyByteChunkStream
+			}
+		})
 }
 
 func indexOf[A comparable](element A, data []A) int {
@@ -59,6 +67,8 @@ func indexOf[A comparable](element A, data []A) int {
 	return -1
 }
 
+// splitBy returns at least one part when separator is not found.
+// Even if len(data) == 0.
 func splitBy[A comparable](sep A, data []A, prefixParts [][]A) (parts [][]A) {
 	i := indexOf(sep, data)
 	if i == -1 {
@@ -76,8 +86,17 @@ func MapToStrings(stm stream.Stream[[]byte]) stream.Stream[string] {
 const DefaultChunkSize = 4096
 
 // ReadLines reads text file line-by-line.
+// If there is a last line that is not terminated by '\n', it is ignored.
 func ReadLines(reader fio.Reader) stream.Stream[string] {
 	chunks := ReadByteChunks(reader, DefaultChunkSize)
-	rows := SplitBySeparator(chunks, '\n')
+	rows := SplitBySeparator(chunks, '\n', false)
+	return MapToStrings(rows)
+}
+
+// ReadLinesWithLastNonFinishedLine reads text file line-by-line.
+// Also returns the last line that is not terminated by '\n'
+func ReadLinesWithNonFinishedLine(reader fio.Reader) stream.Stream[string] {
+	chunks := ReadByteChunks(reader, DefaultChunkSize)
+	rows := SplitBySeparator(chunks, '\n', true)
 	return MapToStrings(rows)
 }

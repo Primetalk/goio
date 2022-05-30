@@ -240,6 +240,7 @@ Reading and writing large text files line-by-line.
 - `text.ReadLines(reader fio.Reader) stream.Stream[string]`
 - `text.WriteLines(writer fio.Writer) stream.Sink[string]`
 - `text.ReadOnlyFile(name string) resource.Resource[*os.File]` returns a resource for the file.
+- `text.ReadLinesWithNonFinishedLine(reader fio.Reader) stream.Stream[string]` - ReadLinesWithLastNonFinishedLine reads text file line-by-line and returns the last line that is not terminated by `'\n'`.
 
 ## Slice utilities
 
