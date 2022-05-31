@@ -60,3 +60,9 @@ func TestGrouped(t *testing.T) {
 	intWindows := slice.Grouped(nats10Values, 3)
 	assert.ElementsMatch(t, intWindows[3], []int{10})
 }
+
+func TestGroupByMapCount(t *testing.T) {
+	counted := slice.GroupByMapCount(nats10Values, IsEven)
+	assert.Equal(t, 5, counted[false])
+	assert.Equal(t, 5, counted[true])
+}
