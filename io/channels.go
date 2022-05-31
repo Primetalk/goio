@@ -7,7 +7,7 @@ import (
 )
 
 // ToChannel saves the value to the channel
-func ToChannel[A any](ch chan A) func(A) IO[fun.Unit] {
+func ToChannel[A any](ch chan<- A) func(A) IO[fun.Unit] {
 	return func(a A) IO[fun.Unit] {
 		return FromUnit(func() (err error) {
 			defer RecoverToErrorVar("writing to channel", &err)
@@ -25,15 +25,14 @@ func MakeUnbufferedChannel[A any]() IO[chan A] {
 }
 
 // CloseChannel is an IO that closes the given channel.
-func CloseChannel[A any](ch chan A) IO[fun.Unit] {
-	return FromUnit(func() error {
+func CloseChannel[A any](ch chan<- A) IO[fun.Unit] {
+	return FromPureEffect(func() {
 		close(ch)
-		return nil
 	})
 }
 
 // ToChannelAndClose sends the value to the channel and then closes the channel.
-func ToChannelAndClose[A any](ch chan A) func(A) IO[fun.Unit] {
+func ToChannelAndClose[A any](ch chan<- A) func(A) IO[fun.Unit] {
 	return func(a A) IO[fun.Unit] {
 		return AndThen(ToChannel(ch)(a), CloseChannel(ch))
 	}

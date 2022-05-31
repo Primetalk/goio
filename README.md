@@ -113,11 +113,11 @@ type Fiber[A any] interface {
 
 ### Using channels with IO and parallel computations
 
-- `io.ToChannel[A any](ch chan A)func(A)IO[fun.Unit]` - ToChannel saves the value to the channel.
+- `io.ToChannel[A any](ch chan<- A)func(A)IO[fun.Unit]` - ToChannel saves the value to the channel.
 - `io.MakeUnbufferedChannel[A any]() IO[chan A]` - MakeUnbufferedChannel allocates a new unbufered channel.
-- `io.CloseChannel[A any](ch chan A) IO[fun.Unit]` - CloseChannel is an IO that closes the given channel.
-- `io.ToChannelAndClose[A any](ch chan A)func(A)IO[fun.Unit]` - ToChannelAndClose sends the value to the channel and then closes the channel.
-- `io.FromChannel[A any](ch chan A)IO[A]` - FromChannel reads a single value from the channel
+- `io.CloseChannel[A any](ch chan<- A) IO[fun.Unit]` - CloseChannel is an IO that closes the given channel.
+- `io.ToChannelAndClose[A any](ch chan<- A)func(A)IO[fun.Unit]` - ToChannelAndClose sends the value to the channel and then closes the channel.
+- `io.FromChannel[A any](ch <-chan A)IO[A]` - FromChannel reads a single value from the channel
 
 ### Running things in parallel
 
