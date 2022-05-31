@@ -5,6 +5,7 @@ import (
 	"errors"
 	fio "io"
 
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 	"github.com/primetalk/goio/stream"
 )
@@ -34,20 +35,25 @@ var emptyByteChunkStream = stream.Empty[[]byte]()
 // SplitBySeparator splits byte-chunk stream by the given separator.
 func SplitBySeparator(stm stream.Stream[[]byte], sep byte, shouldReturnLastIncompleteLine bool) stream.Stream[[]byte] {
 	return stream.StateFlatMapWithFinish(stm, []byte{},
-		func(a []byte, state []byte) (resultState []byte, stm stream.Stream[[]byte]) {
-			parts := splitBy(sep, a, [][]byte{})
-			if len(parts) == 0 {
-				stm = stream.Fail[[]byte](errors.New("unexpected len==0 from splitBy"))
-			} else if len(parts) == 1 {
-				// separator not found
-				resultState = append(state, a...)
-				stm = emptyByteChunkStream
-			} else {
-				parts[0] = append(state, parts[0]...)
-				resultState = parts[len(parts)-1]
-				stm = stream.LiftMany(parts[0 : len(parts)-1]...)
-			}
-			return
+		func(a []byte, state []byte) io.IO[fun.Pair[[]byte, stream.Stream[[]byte]]] {
+			return io.Pure(func() fun.Pair[[]byte, stream.Stream[[]byte]] {
+				var resultState []byte
+				var stm stream.Stream[[]byte]
+				parts := splitBy(sep, a, [][]byte{})
+				if len(parts) == 0 {
+					stm = stream.Fail[[]byte](errors.New("unexpected len==0 from splitBy"))
+				} else if len(parts) == 1 {
+					// separator not found
+					resultState = append(state, a...)
+					stm = emptyByteChunkStream
+				} else {
+					parts[0] = append(state, parts[0]...)
+					resultState = parts[len(parts)-1]
+					stm = stream.LiftMany(parts[0 : len(parts)-1]...)
+				}
+				return fun.NewPair(resultState, stm)
+			})
+
 		},
 		func(s []byte) stream.Stream[[]byte] {
 			if len(s) > 0 && shouldReturnLastIncompleteLine {

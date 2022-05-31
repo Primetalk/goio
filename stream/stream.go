@@ -136,22 +136,28 @@ func Flatten[A any](stm Stream[Stream[A]]) Stream[A] {
 }
 
 // StateFlatMap maintains state along the way.
-func StateFlatMap[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) (S, Stream[B])) Stream[B] {
+func StateFlatMap[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]]) Stream[B] {
 	return StateFlatMapWithFinish(stm, zero, f, func(S) Stream[B] { return Empty[B]() })
 }
 
 // StateFlatMapWithFinish maintains state along the way.
 // When the source stream finishes, it invokes onFinish with the last state.
-func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) (S, Stream[B]), onFinish func(s S) Stream[B]) Stream[B] {
+func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A],
+	zero S,
+	f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]],
+	onFinish func(s S) Stream[B]) Stream[B] {
 	res := io.FlatMap[StepResult[A]](
 		stm,
 		func(sra StepResult[A]) (iores io.IO[StepResult[B]]) {
 			if sra.IsFinished {
 				iores = io.Lift(NewStepResultEmpty(onFinish(zero)))
 			} else if sra.HasValue {
-				st, stmb1 := f(sra.Value, zero)
-				stmb := AndThenLazy(stmb1, func() Stream[B] { return StateFlatMapWithFinish(sra.Continuation, st, f, onFinish) })
-				iores = stmb
+				iop := f(sra.Value, zero)
+				iores = io.FlatMap(iop, func(p fun.Pair[S, Stream[B]]) io.IO[StepResult[B]] {
+					st, stmb1 := p.V1, p.V2
+					stmb := AndThenLazy(stmb1, func() Stream[B] { return StateFlatMapWithFinish(sra.Continuation, st, f, onFinish) })
+					return stmb
+				})
 			} else {
 				iores = io.Lift(NewStepResultEmpty(StateFlatMapWithFinish(sra.Continuation, zero, f, onFinish)))
 			}
@@ -182,8 +188,8 @@ func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 func Sum[A slice.Number](sa Stream[A]) Stream[A] {
 	var zero A
 	return StateFlatMapWithFinish(sa, zero,
-		func(a A, s A) (A, Stream[A]) {
-			return s + a, Empty[A]()
+		func(a A, s A) io.IO[fun.Pair[A, Stream[A]]] {
+			return io.Lift(fun.NewPair(s+a, Empty[A]()))
 		},
 		func(lastState A) Stream[A] {
 			return Lift(lastState)
@@ -199,11 +205,11 @@ func Len[A any](sa Stream[A]) Stream[int] {
 func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
 	return func(sa Stream[A]) Stream[[]A] {
 		return StateFlatMapWithFinish(sa, make([]A, 0, n),
-			func(a A, as []A) ([]A, Stream[[]A]) {
+			func(a A, as []A) io.IO[fun.Pair[[]A, Stream[[]A]]] {
 				if len(as) == n-1 {
-					return make([]A, 0, n), Lift(append(as, a))
+					return io.Lift(fun.NewPair(make([]A, 0, n), Lift(append(as, a))))
 				} else {
-					return append(as, a), Empty[[]A]()
+					return io.Lift(fun.NewPair(append(as, a), Empty[[]A]()))
 				}
 			},
 			func(as []A) Stream[[]A] {

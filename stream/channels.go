@@ -10,10 +10,10 @@ import (
 // The IO blocks until the stream is exhausted.
 func ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit] {
 	stmUnits := StateFlatMapWithFinish(stm, ch,
-		func(a A, ch chan<- A) (chan<- A, Stream[fun.Unit]) {
-			return ch, Eval(io.FromPureEffect(func() {
+		func(a A, ch chan<- A) io.IO[fun.Pair[chan<- A, Stream[fun.Unit]]] {
+			return io.AndThen(io.FromPureEffect(func() {
 				ch <- a
-			}))
+			}), io.Lift(fun.NewPair(ch, Empty[fun.Unit]())))
 		},
 		func(ch chan<- A) Stream[fun.Unit] {
 			return Eval(io.FromPureEffect(func() {
