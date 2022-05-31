@@ -19,14 +19,21 @@ func Parallel[A any](ios []IO[A]) IO[[]A] {
 // returns the very first result.
 // TODO: after obtaining result - cancel the other IOs.
 func ConcurrentlyFirst[A any](ios []IO[A]) IO[A] {
-	channel := make(chan GoResult[A])
-	ioSendToChannelAndCloseChannels := slice.Map(ios, func(ioa IO[A]) IO[fun.Unit] {
-		goResult := FoldToGoResult(ioa)
-		return FlatMap(goResult, ToChannelAndClose(channel))
+	channelIO := Pure(func() chan GoResult[A] {
+		return make(chan GoResult[A], len(ios))
+		// we will only read the very first response. Hence the other go routines could hang if sending to unbuffered channel
 	})
-	parallelSendResults := Parallel(ioSendToChannelAndCloseChannels)
-	ignoreParallelResults := FireAndForget(parallelSendResults)
-	readFromChannel := FromChannel(channel)
-	ignoreParallelResultsAndThenReadFromChannel := AndThen(ignoreParallelResults, readFromChannel)
-	return UnfoldGoResult(ignoreParallelResultsAndThenReadFromChannel)
+	return FlatMap(channelIO, func(channel chan GoResult[A]) IO[A] {
+		ioSendToChannel := slice.Map(ios, func(ioa IO[A]) IO[fun.Unit] {
+			goResult := FoldToGoResult(ioa)
+			return FlatMap(goResult, ToChannel(channel))
+		})
+		parallelSendResults := Parallel(ioSendToChannel)
+		ignoreParallelResultButCloseChannelAfterwards := FireAndForget(AndThen(parallelSendResults, CloseChannel(channel)))
+		readFirstFromChannel := FromChannel(channel)
+		ignoreParallelResultsAndThenReadFirstFromChannel := AndThen(
+			ignoreParallelResultButCloseChannelAfterwards,
+			readFirstFromChannel)
+		return UnfoldGoResult(ignoreParallelResultsAndThenReadFirstFromChannel)
+	})
 }
