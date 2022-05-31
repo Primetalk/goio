@@ -102,6 +102,17 @@ func GroupBy[A any, K comparable](as []A, f func(A) K) (res map[K][]A) {
 	return
 }
 
+// GroupByMap is a convenience function that groups and then maps the subslices.
+func GroupByMap[A any, K comparable, B any](as []A, f func(A) K, g func([]A) B) (res map[K]B) {
+	intermediate := GroupBy(as, f)
+	return MapValues(intermediate, g)
+}
+
+// GroupByMapCount for each key counts how often it is seen.
+func GroupByMapCount[A any, K comparable](as []A, f func(A) K) (res map[K]int) {
+	return GroupByMap(as, f, Len[A])
+}
+
 // Sliding splits the provided slice into windows.
 // Each window will have the given size.
 // The first window starts from offset = 0.
