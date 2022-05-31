@@ -19,7 +19,7 @@ func TestSendingDataThroughChannel(t *testing.T) {
 }
 
 func TestStreamConversion(t *testing.T) {
-	io2 := io.ForEach(pipeMul2IO, func(pair fun.Pair[chan int, chan int]) {
+	io2 := io.ForEach(pipeMul2IO, func(pair fun.Pair[chan<- int, <-chan int]) {
 		input := pair.V1
 		output := pair.V2
 		input <- 10
