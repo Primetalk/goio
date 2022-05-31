@@ -51,15 +51,16 @@ func Start[A any](io IO[A]) IO[Fiber[A]] {
 	return Pure(func() Fiber[A] {
 		callbacks := make(chan Callback[A], maxCallbackCount)
 		goRoutine := func() {
+			defer RecoverToLog("Start.goRoutine")
 			a, err1 := UnsafeRunSync(io)
 			for cb := range callbacks {
 				cb(a, err1)
 			}
 		}
-		go goRoutine()
 		fiber := fiberImpl[A]{
 			callbacks: callbacks,
 		}
+		go goRoutine()
 		return fiber
 	})
 }

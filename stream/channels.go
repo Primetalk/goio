@@ -8,15 +8,17 @@ import (
 // ToChannel sends all stream elements to the given channel.
 // When stream is completed, channel is closed.
 // The IO blocks until the stream is exhausted.
-func ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit] {
+func ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit] {
 	stmUnits := StateFlatMapWithFinish(stm, ch,
-		func(a A, ch chan A) (chan A, Stream[fun.Unit]) {
-			ch <- a
-			return ch, EmptyUnit()
+		func(a A, ch chan<- A) io.IO[fun.Pair[chan<- A, Stream[fun.Unit]]] {
+			return io.AndThen(io.FromPureEffect(func() {
+				ch <- a
+			}), io.Lift(fun.NewPair(ch, Empty[fun.Unit]())))
 		},
-		func(ch chan A) Stream[fun.Unit] {
-			close(ch)
-			return EmptyUnit()
+		func(ch chan<- A) Stream[fun.Unit] {
+			return Eval(io.FromPureEffect(func() {
+				close(ch)
+			}))
 		})
 	return DrainAll(stmUnits)
 }
@@ -24,7 +26,7 @@ func ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit] {
 // FromChannel constructs a stream that reads from the given channel
 // until the channel is open.
 // When channel is closed, the stream is also closed.
-func FromChannel[A any](ch chan A) Stream[A] {
+func FromChannel[A any](ch <-chan A) Stream[A] {
 	return FromStepResult(
 		io.Pure(func() StepResult[A] {
 			a, ok := <-ch
@@ -54,8 +56,8 @@ func PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B] 
 
 // PipeToPairOfChannels converts a streaming pipe to a pair of channels that could be used
 // to interact with external systems.
-func PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, chan B]] {
-	return io.Delay(func() io.IO[fun.Pair[chan A, chan B]] {
+func PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan<- A, <-chan B]] {
+	return io.Delay(func() io.IO[fun.Pair[chan<- A, <-chan B]] {
 
 		input := make(chan A)
 		output := make(chan B)
@@ -64,7 +66,7 @@ func PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, 
 
 		return io.AndThen(
 			io.FireAndForget(ToChannel(outputStream, output)),
-			io.Lift(fun.Pair[chan A, chan B]{V1: input, V2: output}),
+			io.Lift(fun.Pair[chan<- A, <-chan B]{V1: input, V2: output}),
 		)
 	})
 }
