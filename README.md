@@ -86,6 +86,24 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
 - `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
 
+## Resources
+
+Resource is a thing that could only be used inside brackets - acquire/release.
+```go
+type Resource[A any]
+```
+The only allowed way to use the resource is through `Use`:
+- `resource.Use[A any, B any](res Resource[A], f func(A) io.IO[B]) io.IO[B]` - Use is a only way to access the resource instance. It guarantees that the resource instance will be closed after use regardless of the failure/success result.
+
+`ClosableIO` is a simple resource that implements Close method:
+```go
+type ClosableIO interface {
+	Close() io.IOUnit
+}
+```
+- `resource.FromClosableIO[A ClosableIO](ioa io.IO[A]) Resource[A]` - FromClosableIO constructs a new resource from some value that itself supports method Close.
+- `resource.BoundedExecutionContextResource(size int64, queueLimit int) Resource[io.ExecutionContext]` - BoundedExecutionContextResource returns a resource that is a bounded execution context.
+
 ## Parallel computing
 
 Go routine is represented using the `Fiber[A]` interface:

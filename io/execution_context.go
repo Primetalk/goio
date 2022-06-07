@@ -19,8 +19,8 @@ type ExecutionContext interface {
 	// Start returns an IO which will return immediately when executed.
 	// It'll place the runnable into this execution context.
 	Start(neverFailingTask Runnable) IOUnit
-	// Shutdown stops receiving new tasks. Subsequent start invocations will fail.
-	Shutdown() IOUnit
+	// Close stops receiving new tasks. Subsequent start invocations will fail.
+	Close() IOUnit
 }
 
 type executionContextImpl struct {
@@ -38,7 +38,7 @@ func (c executionContextImpl) Start(neverFailingTask Runnable) IOUnit {
 	})
 }
 
-func (c executionContextImpl) Shutdown() IOUnit {
+func (c executionContextImpl) Close() IOUnit {
 	return FromPureEffect(func() {
 		close(c.neverFailingTasksChannel)
 	})
