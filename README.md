@@ -143,7 +143,9 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 
 ### Running things in parallel
 
-- `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results
+- `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results.
+- `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` -  ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
+
 - `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
 
 ### Working with time
