@@ -245,9 +245,12 @@ func Recover[A any](io IO[A], recover func(err error) IO[A]) IO[A] {
 // It'll fail if any of the internal computations fail.
 func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
 	res = Lift([]A{})
-	for _, iou := range ioas {
+	for _, ioa := range ioas {
+		ioaCopy := ioa // See https://eli.thegreenplace.net/2019/go-internals-capturing-loop-variables-in-closures/
 		res = FlatMap(res, func(as []A) IO[[]A] {
-			return Map(iou, func(a A) []A { return append(as, a) })
+			return Map(ioaCopy, func(a A) []A {
+				return append(as, a)
+			})
 		})
 	}
 	return
@@ -258,7 +261,8 @@ func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
 func SequenceUnit(ious []IOUnit) (res IOUnit) {
 	res = IOUnit1
 	for _, iou := range ious {
-		res = FlatMap(res, func(fun.Unit) IOUnit { return iou })
+		iou1 := iou // See https://eli.thegreenplace.net/2019/go-internals-capturing-loop-variables-in-closures/
+		res = FlatMap(res, func(fun.Unit) IOUnit { return iou1 })
 	}
 	return
 }

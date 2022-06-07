@@ -2,6 +2,7 @@ package io_test
 
 import (
 	"errors"
+	"log"
 	"testing"
 
 	"github.com/primetalk/goio/io"
@@ -40,4 +41,28 @@ func TestFinally(t *testing.T) {
 	_, err := io.UnsafeRunSync(fin)
 	assert.Error(t, err, errorMessage)
 	assert.True(t, finalizerExecuted)
+}
+
+func Nats(count int) (ios []io.IO[int]) {
+	for i := 0; i < count; i += 1 {
+		j := i
+		ios = append(ios, io.Pure(func() int {
+			log.Printf("executing %v\n", j)
+			return j
+		}))
+	}
+	return
+}
+
+func TestSequence(t *testing.T) {
+	ios := Nats(10)
+	for i, io1 := range ios {
+		res, err := io.UnsafeRunSync(io1)
+		assert.NoError(t, err)
+		assert.Equal(t, i, res)
+	}
+	ioseq := io.Sequence(ios)
+	res, err := io.UnsafeRunSync(ioseq)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, res)
 }
