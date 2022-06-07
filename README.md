@@ -111,6 +111,28 @@ type Fiber[A any] interface {
 - `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
 - `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
 
+### Execution contexts
+
+Execution context is a low level resource for configuring how much processing power should be used for certain tasks. The executions are represented by `Runnable` type which is just a function without input/output. All interaction should be encapsulated inside it.
+
+- `io.Runnable func()` - Runnable is a computation that performs some side effect and takes care of errors and panics. It task should never fail. In case it fails, application might run os.Exit(1).
+- `io.ExecutionContext interface {}` - ExecutionContext is a resource capable of running tasks in parallel. NB! This is not a safe resource and it is not intended to be used directly:
+
+```go
+type ExecutionContext interface {
+	// Start returns an IO which will return immediately when executed.
+	// It'll place the runnable into this execution context.
+	Start(neverFailingTask Runnable) IOUnit
+	// Shutdown stops receiving new tasks. Subsequent start invocations will fail.
+	Shutdown() IOUnit
+}
+```
+
+There are two kinds of execution contexts - `UnboundedExecutionContext` and `BoundedExecutionContext`. Unbounded is recommended for IO-bound operations while bounded is for CPU-intensive tasks.
+
+- `io.UnboundedExecutionContext() io.ExecutionContext` - UnboundedExecutionContext runs each task in a new go routine.
+- `io.BoundedExecutionContext(size int64, queueLimit int) io.ExecutionContext` - BoundedExecutionContext creates an execution context that will execute tasks concurrently. Simultaneously there could be as many as `size` executions. If there are more tasks than could be started immediately they will be placed in a queue. If the queue is exhausted, `Start` will block until some tasks are run. The recommended queue size is 0 (all tasks are immediately sent to the execution). This provides immediate back pressure in case of starvation.
+
 ### Using channels with IO and parallel computations
 
 - `io.ToChannel[A any](ch chan<- A)func(A)IO[fun.Unit]` - ToChannel saves the value to the channel.
@@ -121,7 +143,8 @@ type Fiber[A any] interface {
 
 ### Running things in parallel
 
-- `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results
+- `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results.
+- `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` -  ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
 - `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
 
 ### Working with time

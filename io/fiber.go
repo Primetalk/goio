@@ -1,6 +1,9 @@
 package io
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/primetalk/goio/fun"
 )
 
@@ -23,46 +26,75 @@ type Fiber[A any] interface {
 	// Cancel() IO[Unit]
 }
 
+// if result is already available, there is no need to use callbacks channel.
+// The result will be immediately delivered.
 type fiberImpl[A any] struct {
-	callbacks chan Callback[A]
+	mu        *sync.Mutex
+	result    *GoResult[A]
+	callbacks []Callback[A]
 }
 
-func (f fiberImpl[A]) Join() IO[A] {
+func (f *fiberImpl[A]) Join() IO[A] {
 	return Async(func(cb Callback[A]) {
-		f.callbacks <- cb
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.result == nil {
+			f.callbacks = append(f.callbacks, cb)
+		} else {
+			// we run external function in a go routine just to make sure we are not locked forever
+			go cb(f.result.Value, f.result.Error)
+		}
 	})
 }
 
-func (f fiberImpl[A]) Close() IO[fun.Unit] {
-	return FromUnit(func() error {
-		close(f.callbacks)
-		return nil
+func (f *fiberImpl[A]) Close() IO[fun.Unit] {
+	return FromPureEffect(func() {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.result == nil {
+			f.result = &GoResult[A]{
+				Error: errors.New("fiber is closed"),
+			}
+		}
 	})
 }
 
-var maxCallbackCount = 16
+// StartInExecutionContext executes the given task in the provided ExecutionContext
+// It'll establish a channel with callbacks, so that
+// any number of listeners could join the returned fiber. (Simultaneously not more than MaxCallbackCount though.)
+// When completed it'll start sending the results to the callbacks.
+// The same value will be delivered to all listeners.
+func StartInExecutionContext[A any](ec ExecutionContext) func(io IO[A]) IO[Fiber[A]] {
+	return func(io IO[A]) IO[Fiber[A]] {
+		return Delay(func() IO[Fiber[A]] {
+			fiber := &fiberImpl[A]{
+				mu:        &sync.Mutex{},
+				callbacks: []Callback[A]{},
+			}
+			goRoutine := func() {
+				defer RecoverToLog("StartInExecutionContext.goRoutine")
+				a, err1 := UnsafeRunSync(io)
+				fiber.mu.Lock()
+				fiber.result = &GoResult[A]{a, err1}
+				callbacks := fiber.callbacks
+				fiber.callbacks = []Callback[A]{}
+				fiber.mu.Unlock()
+				for _, cb := range callbacks {
+					cb(a, err1)
+				}
+			}
+			return Map(ec.Start(goRoutine), fun.ConstUnit[Fiber[A]](fiber))
+		})
+	}
+}
 
-// Start will start the IO in a separate go-routine.
+// Start will start the IO in a separate go-routine (actually in the global unbounded execution context).
 // It'll establish a channel with callbacks, so that
 // any number of listeners could join the returned fiber.
 // When completed it'll start sending the results to the callbacks.
 // The same value will be delivered to all listeners.
 func Start[A any](io IO[A]) IO[Fiber[A]] {
-	return Pure(func() Fiber[A] {
-		callbacks := make(chan Callback[A], maxCallbackCount)
-		goRoutine := func() {
-			defer RecoverToLog("Start.goRoutine")
-			a, err1 := UnsafeRunSync(io)
-			for cb := range callbacks {
-				cb(a, err1)
-			}
-		}
-		fiber := fiberImpl[A]{
-			callbacks: callbacks,
-		}
-		go goRoutine()
-		return fiber
-	})
+	return StartInExecutionContext[A](globalUnboundedExecutionContext)(io)
 }
 
 // FireAndForget runs the given IO in a go routine and ignores the result
