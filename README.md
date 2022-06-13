@@ -44,13 +44,49 @@ For debug purposes it's useful to convert arbitrary data to strings.
 
 For compatibility with `interface {}`:
 
-
 - `fun.CastAsInterface[A any](a A) interface {}` - CastAsInterface casts a value of an arbitrary type as interface {}.
 - `fun.UnsafeCast[A any](i interface {}) A` - UnsafeCast converts interface {} to ordinary type A. It'a simple operation i.(A) represented as a function. In case the conversion is not possible throws a panic.
 
 ## IO
 
 IO encapsulates a calculation and provides a mechanism to compose a few calculations (flat map or bind).
+
+### Error handling
+
+An arbitrary calculation may either return good result that one might expect, or fail with an error or even panic. In Go a recommended pattern is to represent failure explicitly in the function signature by returning both result and an error. There is a convention that says that when an error is not `nil`, the result should not be used.
+
+While the requirement to explicitly deal with errors helps implementing robust systems a lot, it is often very verbose and it advocates the bad practice of explicit control flow via `return`:
+
+```go
+a, err = foo()
+if err != nil {
+	return
+}
+```
+
+Here a single semantically important action (`foo`) requires 4 lines of code, a branch and a return statement.
+
+This style is also not very friendly to function composition. If you need to pass the result of `foo` further to `bar`, you'll have to first bow to error handling ceremony.
+
+The composition of two consequtive calculations is fundamental to programming. There is even a mathematical model that studies the properties of composition of calculations.
+
+From error handling perspective `IO[A]` provides the following features:
+- encapsulates a calculation that may return `A` or might fail;
+- it never panics, all panics are wrapped into `error`s and presented for handling;
+- provides convenient mechanisms for composing consequtive calculations (`io.Map`, `io.FlatMap`).
+
+### Interaction with outer world vs simple (pure) functions/calculations.
+
+From compiler's perspective things that happen in the program can be either ordinary pure computations or modification of some state outside of the function. Pure computation is special, because it has the following benefits:
+- one can execute the same computation and receive exactly the same results;
+- except obtaining the result of the computation nothing is changed elsewhere;
+- it's much easier to reason about what is happening in the program made of pure computations (because nothing is happening apart from the computation itself).
+
+The ability to understand and reason about programs is crucial to the ability of creation of somewhat complex programs.
+
+Unfortunately all these nice and desired properties break when there are so called "side effects" - change of state, outer world interaction, ... - all things that make the computation to produce a different effect (and probably return different function results) even being called with the same arguments.
+
+`IO[A]` provides a mechanism to arrange these side-effectful computations in such a way that it's easier to predict what is happening in the program. The main feature is the delay of actual effect execution until the late moment possible. A typical IO-based program does not perform any action until it is executed. It's often possible to construct the whole large computation for a complex program and only after that perform the execution. 
 
 ### Construction
 
