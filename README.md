@@ -42,6 +42,12 @@ For debug purposes it's useful to convert arbitrary data to strings.
 
 - `fun.ToString[A any](a A) string` - converts the value to string using `Sprintf` `%v`.
 
+For compatibility with `interface {}`:
+
+
+- `fun.CastAsInterface[A any](a A) interface {}` - CastAsInterface casts a value of an arbitrary type as interface {}.
+- `fun.UnsafeCast[A any](i interface {}) A` - UnsafeCast converts interface {} to ordinary type A. It'a simple operation i.(A) represented as a function. In case the conversion is not possible throws a panic.
+
 ## IO
 
 IO encapsulates a calculation and provides a mechanism to compose a few calculations (flat map or bind).
