@@ -52,8 +52,8 @@ func NewStepResultFinished[A any]() StepResult[A] {
 
 // MapEval maps the values of the stream. The provided function returns an IO.
 func MapEval[A any, B any](stm Stream[A], f func(a A) io.IO[B]) Stream[B] {
-	return io.FlatMap[StepResult[A]](
-		stm,
+	return Stream[B](io.FlatMap[StepResult[A]](
+		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) io.IO[StepResult[B]] {
 			if sra.IsFinished {
 				return io.Lift(NewStepResultFinished[B]())
@@ -67,7 +67,7 @@ func MapEval[A any, B any](stm Stream[A], f func(a A) io.IO[B]) Stream[B] {
 					NewStepResultEmpty(MapEval(sra.Continuation, f)),
 				)
 			}
-		})
+		}))
 }
 
 // Map converts values of the stream.
@@ -89,11 +89,11 @@ func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 
 // AndThenLazy appends another stream. The other stream is constructed lazily.
 func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
-	return io.FlatMap[StepResult[A]](
-		stm1,
+	return Stream[A](io.FlatMap[StepResult[A]](
+		io.IO[StepResult[A]](stm1),
 		func(sra StepResult[A]) io.IO[StepResult[A]] {
 			if sra.IsFinished {
-				return stm2()
+				return io.IO[StepResult[A]](stm2())
 			} else {
 				return io.Lift(StepResult[A]{
 					Value:        sra.Value,
@@ -101,25 +101,25 @@ func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
 					HasValue:     sra.HasValue,
 				})
 			}
-		})
+		}))
 
 }
 
 // FlatMap constructs a
 func FlatMap[A any, B any](stm Stream[A], f func(a A) Stream[B]) Stream[B] {
-	return io.FlatMap[StepResult[A]](
-		stm,
+	return Stream[B](io.FlatMap[StepResult[A]](
+		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) io.IO[StepResult[B]] {
 			if sra.IsFinished {
 				return io.Lift(NewStepResultFinished[B]())
 			} else if sra.HasValue {
 				stmb1 := f(sra.Value)
 				stmb := AndThenLazy(stmb1, func() Stream[B] { return FlatMap(sra.Continuation, f) })
-				return stmb
+				return io.IO[StepResult[B]](stmb)
 			} else {
 				return io.Lift(NewStepResultEmpty(FlatMap(sra.Continuation, f)))
 			}
-		})
+		}))
 }
 
 // FlatMapPipe creates a pipe that flatmaps one stream through the provided function.
@@ -147,7 +147,7 @@ func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A],
 	f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]],
 	onFinish func(s S) Stream[B]) Stream[B] {
 	res := io.FlatMap[StepResult[A]](
-		stm,
+		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) (iores io.IO[StepResult[B]]) {
 			if sra.IsFinished {
 				iores = io.Lift(NewStepResultEmpty(onFinish(zero)))
@@ -156,20 +156,20 @@ func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A],
 				iores = io.FlatMap(iop, func(p fun.Pair[S, Stream[B]]) io.IO[StepResult[B]] {
 					st, stmb1 := p.V1, p.V2
 					stmb := AndThenLazy(stmb1, func() Stream[B] { return StateFlatMapWithFinish(sra.Continuation, st, f, onFinish) })
-					return stmb
+					return io.IO[StepResult[B]](stmb)
 				})
 			} else {
 				iores = io.Lift(NewStepResultEmpty(StateFlatMapWithFinish(sra.Continuation, zero, f, onFinish)))
 			}
 			return
 		})
-	return res.(Stream[B])
+	return Stream[B](res)
 }
 
 // Filter leaves in the stream only the elements that satisfy the given predicate.
 func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
-	return io.Map[StepResult[A]](
-		stm,
+	return Stream[A](io.Map[StepResult[A]](
+		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) StepResult[A] {
 			if sra.IsFinished {
 				return sra
@@ -181,7 +181,7 @@ func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 					return NewStepResultEmpty(cont)
 				}
 			}
-		})
+		}))
 }
 
 // Sum is a pipe that returns a stream of 1 element that is sum of all elements of the original stream.

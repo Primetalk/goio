@@ -12,7 +12,7 @@ import (
 
 // ReadByteChunks reads chunks from the reader.
 func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
-	return io.Eval(func() (res stream.StepResult[[]byte], err error) {
+	return stream.Stream[[]byte](io.Eval(func() (res stream.StepResult[[]byte], err error) {
 		bytes := make([]byte, chunkSize)
 		var cnt int
 		cnt, err = reader.Read(bytes)
@@ -27,7 +27,7 @@ func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 			}
 		}
 		return
-	})
+	}))
 }
 
 var emptyByteChunkStream = stream.Empty[[]byte]()

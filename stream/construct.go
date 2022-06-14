@@ -7,7 +7,7 @@ import (
 
 // Empty returns an empty stream.
 func Empty[A any]() Stream[A] {
-	return io.Pure(func() StepResult[A] { return NewStepResultFinished[A]() })
+	return Stream[A](io.Pure(func() StepResult[A] { return NewStepResultFinished[A]() }))
 }
 
 var empty = Empty[fun.Unit]()
@@ -20,9 +20,9 @@ func EmptyUnit() Stream[fun.Unit] {
 
 // Eval returns a stream of one value that is the result of IO.
 func Eval[A any](ioa io.IO[A]) Stream[A] {
-	return io.Map(ioa, func(a A) StepResult[A] {
+	return Stream[A](io.Map(ioa, func(a A) StepResult[A] {
 		return NewStepResult(a, Empty[A]())
-	})
+	}))
 }
 
 // Lift returns a stream of one value.
@@ -40,16 +40,16 @@ func FromSlice[A any](as []A) Stream[A] {
 	if len(as) == 0 {
 		return Empty[A]()
 	} else {
-		return io.Lift(NewStepResult(as[0], FromSlice(as[1:])))
+		return Stream[A](io.Lift(NewStepResult(as[0], FromSlice(as[1:]))))
 	}
 }
 
 // Generate constructs an infinite stream of values using the production function.
 func Generate[A any, S any](zero S, f func(s S) (S, A)) Stream[A] {
-	return io.Eval(func() (StepResult[A], error) {
+	return Stream[A](io.Eval(func() (StepResult[A], error) {
 		s, a := f(zero)
 		return NewStepResult(a, Generate(s, f)), nil
-	})
+	}))
 }
 
 // Unfold constructs an infinite stream of values using the production function.
@@ -68,5 +68,5 @@ func FromSideEffectfulFunction[A any](f func() (A, error)) Stream[A] {
 
 // FromStepResult constructs a stream from an IO that returns StepResult.
 func FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A] {
-	return iosr
+	return Stream[A](iosr)
 }

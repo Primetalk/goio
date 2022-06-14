@@ -6,24 +6,18 @@ type Callback[A any] func(A, error)
 // Async[A] constructs an IO given a function that will eventually call a callback.
 // Internally this function creates a channel and blocks on in until the function calls it.
 func Async[A any](k func(Callback[A])) IO[A] {
-	return asyncImpl[A]{k}
-}
-
-type asyncImpl[A any] struct {
-	k func(Callback[A])
-}
-
-func (i asyncImpl[A]) unsafeRun() (A, error) {
-	ch := make(chan GoResult[A])
-	cb := func(a A, err error) {
-		ch <- GoResult[A]{
-			Value: a,
-			Error: err,
+	return func() ResultOrContinuation[A] {
+		ch := make(chan ResultOrContinuation[A])
+		cb := func(a A, err error) {
+			ch <- ResultOrContinuation[A]{
+				Value: a,
+				Error: err,
+			}
 		}
+		k(cb)
+		res := <-ch
+		return res
 	}
-	i.k(cb)
-	res := <-ch
-	return res.Value, res.Error
 }
 
 // StartInGoRoutineAndWaitForResult - not very useful function.
