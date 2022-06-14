@@ -11,34 +11,23 @@ import (
 // IO[A] represents a calculation that will yield a value of type A once executed.
 // The calculation might as well fail.
 // It is designed to not panic ever.
-type IO[A any] interface {
-	unsafeRun() (A, error)
-}
-
-// GoResult[A] is a data structure that represents the Go-style result of a function that
-// could fail.
-type GoResult[A any] struct {
-	Value A
-	Error error
-}
-
-func (e GoResult[A]) unsafeRun() (res A, err error) {
-	defer RecoverToErrorVar("GoResult.unsafeRun", &err)
-	return e.Value, e.Error
-}
+type IO[A any] Continuation[A]
 
 // LiftPair[A] constructs an IO from constant values.
 func LiftPair[A any](a A, err error) IO[A] {
-	return GoResult[A]{
-		Value: a,
-		Error: err,
+	return func() ResultOrContinuation[A] {
+		return ResultOrContinuation[A]{
+			Value:        a,
+			Error:        err,
+			Continuation: nil,
+		}
 	}
 }
 
 // UnsafeRunSync runs the given IO[A] synchronously and returns the result.
 func UnsafeRunSync[A any](io IO[A]) (res A, err error) {
 	defer RecoverToErrorVar("UnsafeRunSync", &err)
-	return io.unsafeRun()
+	return ObtainResult(Continuation[A](io))
 }
 
 // RunSync is the same as UnsafeRunSync but returns GoResult[A].
@@ -49,50 +38,38 @@ func RunSync[A any](io IO[A]) GoResult[A] {
 
 // Delay[A] wraps a function that will then return an IO.
 func Delay[A any](f func() IO[A]) IO[A] {
-	return delayImpl[A]{
-		f: f,
+	return func() ResultOrContinuation[A] {
+		return f()()
 	}
-}
-
-type delayImpl[A any] struct {
-	f func() IO[A]
-}
-
-func (i delayImpl[A]) unsafeRun() (a A, err error) {
-	defer RecoverToErrorVar("Delay.unsafeRun", &err)
-	return i.f().unsafeRun()
 }
 
 // Eval[A] constructs an IO[A] from a simple function that might fail.
 // If there is panic in the function, it's recovered from and represented as an error.
 func Eval[A any](f func() (A, error)) IO[A] {
-	return evalImpl[A]{
-		f: f,
+	return func() ResultOrContinuation[A] {
+		a, err := f()
+		return ResultOrContinuation[A]{
+			Value: a,
+			Error: err,
+		}
 	}
-}
-
-type evalImpl[A any] struct {
-	f func() (A, error)
-}
-
-func (e evalImpl[A]) unsafeRun() (res A, err error) {
-	defer RecoverToErrorVar("Eval.unsafeRun", &err)
-	return e.f()
 }
 
 // FromPureEffect constructs IO from the simplest function signature.
 func FromPureEffect(f func()) IO[fun.Unit] {
-	return Eval(func() (fun.Unit, error) {
+	return func() ResultOrContinuation[fun.Unit] {
 		f()
-		return fun.Unit1, nil
-	})
+		return ResultOrContinuation[fun.Unit]{}
+	}
 }
 
 // FromUnit consturcts IO[fun.Unit] from a simple function that might fail.
 func FromUnit(f func() error) IO[fun.Unit] {
-	return Eval(func() (fun.Unit, error) {
-		return fun.Unit1, f()
-	})
+	return func() ResultOrContinuation[fun.Unit] {
+		return ResultOrContinuation[fun.Unit]{
+			Error: f(),
+		}
+	}
 }
 
 // Pure[A] constructs an IO[A] from a function that cannot fail.
@@ -110,66 +87,61 @@ func FromConstantGoResult[A any](gr GoResult[A]) IO[A] {
 
 // MapErr maps the result of IO[A] using a function that might fail.
 func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
-	return mapImpl[A, B]{
-		io: ioA,
-		f:  f,
+	return func() ResultOrContinuation[B] {
+		rA := ioA()
+		if rA.Continuation == nil {
+			if rA.Error == nil {
+				cont := Continuation[B](func() ResultOrContinuation[B] {
+					b, err := f(rA.Value)
+					return ResultOrContinuation[B]{
+						Value: b,
+						Error: err,
+					}
+				})
+				return ResultOrContinuation[B]{
+					Continuation: &cont,
+				}
+			} else {
+				return interface{}(rA).(ResultOrContinuation[B]) // unsafe cast of error to avoid an allocation
+			}
+		} else {
+			return MapErr(IO[A](*rA.Continuation), f)()
+		}
 	}
 }
 
 // Map converts the IO[A] result using the provided function that cannot fail.
 func Map[A any, B any](ioA IO[A], f func(a A) B) IO[B] {
-	return mapImpl[A, B]{
-		io: ioA,
-		f:  func(a A) (B, error) { return f(a), nil },
-	}
-}
-
-type mapImpl[A any, B any] struct {
-	io IO[A]
-	f  func(a A) (B, error)
-}
-
-func (e mapImpl[A, B]) unsafeRun() (res B, err error) {
-	defer RecoverToErrorVar("Map.unsafeRun", &err)
-	var a A
-	a, err = e.io.unsafeRun()
-	if err == nil {
-		res, err = e.f(a)
-	}
-	return
+	return MapErr(ioA, func(a A) (B, error) { return f(a), nil })
 }
 
 // FlatMap converts the result of IO[A] using a function that itself returns an IO[B].
 // It'll fail if any of IO[A] or IO[B] fail.
 func FlatMap[A any, B any](ioA IO[A], f func(a A) IO[B]) IO[B] {
-	return flatMapImpl[A, B]{
-		io: ioA,
-		f:  f,
+	return func() ResultOrContinuation[B] {
+		rA := ioA()
+		if rA.Continuation == nil {
+			if rA.Error == nil {
+				cont := Continuation[B](func() ResultOrContinuation[B] {
+					ioB := f(rA.Value)
+					return ioB()
+				})
+				return ResultOrContinuation[B]{
+					Continuation: &cont,
+				}
+			} else {
+				return interface{}(rA).(ResultOrContinuation[B]) // unsafe cast of error to avoid an allocation
+			}
+		} else {
+			return FlatMap(IO[A](*rA.Continuation), f)()
+		}
 	}
-}
-
-type flatMapImpl[A any, B any] struct {
-	io IO[A]
-	f  func(a A) IO[B]
-}
-
-func (e flatMapImpl[A, B]) unsafeRun() (res B, err error) {
-	defer RecoverToErrorVar("FlatMap.unsafeRun", &err)
-	var a A
-	a, err = e.io.unsafeRun()
-	if err == nil {
-		res, err = e.f(a).unsafeRun()
-	}
-	return
 }
 
 // FlatMapErr converts IO[A] result using a function that might fail.
 // It seems to be identical to MapErr.
 func FlatMapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
-	return flatMapImpl[A, B]{
-		io: ioA,
-		f:  func(a A) IO[B] { return LiftPair(f(a)) },
-	}
+	return FlatMap(ioA, func(a A) IO[B] { return LiftPair(f(a)) })
 }
 
 // AndThen runs the first IO, ignores it's result and then runs the second one.
@@ -191,17 +163,25 @@ func Fail[A any](err error) IO[A] {
 }
 
 // Fold performs different calculations based on whether IO[A] failed or succeeded.
-func Fold[A any, B any](io IO[A], f func(a A) IO[B], recover func(error) IO[B]) IO[B] {
-	return Delay(func() IO[B] {
-		var a A
-		var err error
-		a, err = io.unsafeRun()
-		if err == nil {
-			return f(a)
+func Fold[A any, B any](ioA IO[A], f func(a A) IO[B], recover func(error) IO[B]) IO[B] {
+	return func() ResultOrContinuation[B] {
+		rA := ioA()
+		if rA.Continuation == nil {
+			if rA.Error == nil {
+				cont := Continuation[B](func() ResultOrContinuation[B] {
+					ioB := f(rA.Value)
+					return ioB()
+				})
+				return ResultOrContinuation[B]{
+					Continuation: &cont,
+				}
+			} else {
+				return recover(rA.Error)()
+			}
 		} else {
-			return recover(err)
+			return Fold(IO[A](*rA.Continuation), f, recover)()
 		}
-	})
+	}
 }
 
 // FoldToGoResult converts either value or error to go result
@@ -224,16 +204,11 @@ func UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A] {
 }
 
 // FoldErr folds IO using simple Go-style functions that might fail.
-func FoldErr[A any, B any](io IO[A], f func(a A) (B, error), recover func(error) (B, error)) IO[B] {
-	return Eval(func() (b B, err error) {
-		var a A
-		a, err = io.unsafeRun()
-		if err == nil {
-			return f(a)
-		} else {
-			return recover(err)
-		}
-	})
+func FoldErr[A any, B any](ioA IO[A], f func(a A) (B, error), recover func(error) (B, error)) IO[B] {
+	return Fold(ioA,
+		func(a A) IO[B] { return LiftPair(f(a)) },
+		func(err error) IO[B] { return LiftPair(recover(err)) },
+	)
 }
 
 // Recover handles a potential error from IO. It does not fail itself.

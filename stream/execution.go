@@ -11,7 +11,7 @@ import (
 // the provided function
 func Collect[A any](stm Stream[A], collector func(A) error) io.IO[fun.Unit] {
 	return io.FlatMap[StepResult[A]](
-		stm,
+		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) io.IO[fun.Unit] {
 			if sra.IsFinished {
 				return io.Lift(fun.Unit1)
@@ -38,26 +38,30 @@ func ForEach[A any](stm Stream[A], collector func(A)) io.IO[fun.Unit] {
 
 // DrainAll executes the stream and throws away all values.
 func DrainAll[A any](stm Stream[A]) io.IO[fun.Unit] {
-	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[fun.Unit] {
-		if sra.IsFinished {
-			return io.Lift(fun.Unit1)
-		} else {
-			return DrainAll(sra.Continuation)
-		}
-	})
+	return io.FlatMap[StepResult[A]](
+		io.IO[StepResult[A]](stm),
+		func(sra StepResult[A]) io.IO[fun.Unit] {
+			if sra.IsFinished {
+				return io.Lift(fun.Unit1)
+			} else {
+				return DrainAll(sra.Continuation)
+			}
+		})
 }
 
 // AppendToSlice executes the stream and appends it's results to the slice.
 func AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A] {
-	return io.FlatMap[StepResult[A]](stm, func(sra StepResult[A]) io.IO[[]A] {
-		if sra.IsFinished {
-			return io.Lift(start)
-		} else if sra.HasValue {
-			return AppendToSlice(sra.Continuation, append(start, sra.Value))
-		} else {
-			return AppendToSlice(sra.Continuation, start)
-		}
-	})
+	return io.FlatMap[StepResult[A]](
+		io.IO[StepResult[A]](stm),
+		func(sra StepResult[A]) io.IO[[]A] {
+			if sra.IsFinished {
+				return io.Lift(start)
+			} else if sra.HasValue {
+				return AppendToSlice(sra.Continuation, append(start, sra.Value))
+			} else {
+				return AppendToSlice(sra.Continuation, start)
+			}
+		})
 }
 
 // ToSlice executes the stream and collects all results to a slice.

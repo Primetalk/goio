@@ -128,6 +128,14 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
 - `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
 
+### Implementation details
+
+IO might be implemented in various ways. Here we implement IO using continuations. A simple step in the constructed IO program might either complete (returning a result or an error), or return a continuation - another execution of the same kind. In order to obtain result we should execute the returned function.
+Continuations help avoiding deeply nested stack traces. It's a universal way to do "trampolining".
+
+- `type Continuation[A any] func() ResultOrContinuation[A]` - Continuation represents some multistep computation. Here `ResultOrContinuation[A]` is either a final result (value or error) or another continuation.
+- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes continuation until final result is obtained. There is `io.MaxContinuationDepth` variable that allows to limit the depth of continuation executions. Default value is 1000000000000.
+
 ## Resources
 
 Resource is a thing that could only be used inside brackets - acquire/release.
