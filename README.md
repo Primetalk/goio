@@ -47,6 +47,10 @@ For compatibility with `interface {}`:
 - `fun.CastAsInterface[A any](a A) interface {}` - CastAsInterface casts a value of an arbitrary type as interface {}.
 - `fun.UnsafeCast[A any](i interface {}) A` - UnsafeCast converts interface {} to ordinary type A. It'a simple operation i.(A) represented as a function. In case the conversion is not possible throws a panic.
 
+Is there a way to obtain a value of an arbitrary type?
+
+- `fun.Nothing[A any]() A` - This function can be used anywhere where type `A` is needed. It'll always fail if invoked at runtime.
+
 ## Option
 
 A convenient data structure `Option[A]` that provides safe mechanisms to work with a potentially empty value.
