@@ -50,3 +50,9 @@ func Compose[A any, B any, C any](f func(A) B, g func(B) C) func(A) C {
 		return g(f(a))
 	}
 }
+
+// Nothing panics.
+// However, can be used anywhere where type A is needed.
+func Nothing[A any]() A {
+	panic("nothing")
+}

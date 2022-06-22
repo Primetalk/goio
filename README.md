@@ -47,6 +47,23 @@ For compatibility with `interface {}`:
 - `fun.CastAsInterface[A any](a A) interface {}` - CastAsInterface casts a value of an arbitrary type as interface {}.
 - `fun.UnsafeCast[A any](i interface {}) A` - UnsafeCast converts interface {} to ordinary type A. It'a simple operation i.(A) represented as a function. In case the conversion is not possible throws a panic.
 
+Is there a way to obtain a value of an arbitrary type?
+
+- `fun.Nothing[A any]() A` - This function can be used anywhere where type `A` is needed. It'll always fail if invoked at runtime.
+
+## Option
+
+A convenient data structure `Option[A]` that provides safe mechanisms to work with a potentially empty value.
+
+- `option.None[A any]() Option[A]` - None constructs an option without value.
+- `option.Some[A any](a A) Option[A]` - Some constructs an option with value.
+- `option.Map[A any, B any](oa Option[A], f func(A) B) Option[B]` - Map applies a function to the value inside option if any.
+- `option.Fold[A any, B any](oa Option[A], f func(A) B, g func() B) (b B)` - Fold transforms all possible values of OptionA using two provided functions.
+- `option.Filter[A any](oa Option[A], predicate func(A) bool) Option[A]` - Filter leaves the value inside option only if predicate is true.
+- `option.FlatMap[A any, B any](oa Option[A], f func(A) Option[B]) Option[B]` - FlatMap converts an internal value if it is present using the provided function.
+- `option.Flatten[A any](ooa Option[Option[A]]) Option[A]` - Flatten simplifies option of option to just Option[A].
+- `option.Get[A any](oa Option[A]) A` - Get is an unsafe function that unwraps the value from the option.
+
 ## IO
 
 IO encapsulates a calculation and provides a mechanism to compose a few calculations (flat map or bind).
