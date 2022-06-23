@@ -10,33 +10,29 @@ import (
 	"github.com/primetalk/goio/stream"
 )
 
+var emptyByteChunkStream = stream.Empty[[]byte]()
+
 // ReadByteChunks reads chunks from the reader.
 func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
-	return stream.Stream[[]byte](io.Eval(func() (res stream.StepResult[[]byte], err error) {
+	return stream.Stream[[]byte](io.Pure(func() (res stream.StepResult[[]byte]) {
 		bytes := make([]byte, chunkSize)
-		var cnt int
-		cnt, err = reader.Read(bytes)
-		if err == fio.EOF {
-			err = nil
-			var cont stream.Stream[[]byte]
-			if cnt == 0 {
-				cont = stream.Empty[[]byte]()
-			} else {
-				cont = stream.Lift(bytes[0:cnt])
-			}
-			res = stream.NewStepResultEmpty(cont)
-		} else if err == nil {
-			if cnt == 0 {
-				res = stream.NewStepResultEmpty(stream.Empty[[]byte]())
-			} else {
-				res = stream.NewStepResult(bytes[0:cnt], ReadByteChunks(reader, chunkSize))
-			}
+		cnt, err1 := reader.Read(bytes)
+		var finish stream.Stream[[]byte]
+		if err1 == nil {
+			finish = ReadByteChunks(reader, chunkSize)
+		} else if err1 == fio.EOF {
+			finish = emptyByteChunkStream
+		} else {
+			finish = stream.Fail[[]byte](err1)
+		}
+		if cnt == 0 {
+			res = stream.NewStepResultEmpty(finish)
+		} else {
+			res = stream.NewStepResult(bytes[0:cnt], finish)
 		}
 		return
 	}))
 }
-
-var emptyByteChunkStream = stream.Empty[[]byte]()
 
 // SplitBySeparator splits byte-chunk stream by the given separator.
 func SplitBySeparator(stm stream.Stream[[]byte], sep byte, shouldReturnLastIncompleteLine bool) stream.Stream[[]byte] {
