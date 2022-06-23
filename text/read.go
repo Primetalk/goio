@@ -18,7 +18,13 @@ func ReadByteChunks(reader fio.Reader, chunkSize int) stream.Stream[[]byte] {
 		cnt, err = reader.Read(bytes)
 		if err == fio.EOF {
 			err = nil
-			res = stream.NewStepResultEmpty(stream.Empty[[]byte]())
+			var cont stream.Stream[[]byte]
+			if cnt == 0 {
+				cont = stream.Empty[[]byte]()
+			} else {
+				cont = stream.Lift(bytes[0:cnt])
+			}
+			res = stream.NewStepResultEmpty(cont)
 		} else if err == nil {
 			if cnt == 0 {
 				res = stream.NewStepResultEmpty(stream.Empty[[]byte]())
