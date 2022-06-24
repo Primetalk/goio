@@ -102,7 +102,9 @@ func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 					Continuation: &cont,
 				}
 			} else {
-				return interface{}(rA).(ResultOrContinuation[B]) // unsafe cast of error to avoid an allocation
+				return ResultOrContinuation[B]{
+					Error: rA.Error,
+				}
 			}
 		} else {
 			return MapErr(IO[A](*rA.Continuation), f)()
@@ -130,7 +132,9 @@ func FlatMap[A any, B any](ioA IO[A], f func(a A) IO[B]) IO[B] {
 					Continuation: &cont,
 				}
 			} else {
-				return interface{}(rA).(ResultOrContinuation[B]) // unsafe cast of error to avoid an allocation
+				return ResultOrContinuation[B]{
+					Error: rA.Error,
+				}
 			}
 		} else {
 			return FlatMap(IO[A](*rA.Continuation), f)()
