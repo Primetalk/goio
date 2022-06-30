@@ -45,6 +45,7 @@ For debug purposes it's useful to convert arbitrary data to strings.
 For compatibility with `interface {}`:
 
 - `fun.CastAsInterface[A any](a A) interface {}` - CastAsInterface casts a value of an arbitrary type as interface {}.
+- `fun.Cast[A any](i Any) (a A, err error)` - Cast converts interface {} to ordinary type A. It'a simple operation i.(A) represented as a function. In case the conversion is not possible, returns an error.
 - `fun.UnsafeCast[A any](i interface {}) A` - UnsafeCast converts interface {} to ordinary type A. It'a simple operation i.(A) represented as a function. In case the conversion is not possible throws a panic.
 
 Is there a way to obtain a value of an arbitrary type?
