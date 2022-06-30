@@ -361,6 +361,7 @@ Some utilities that are convenient when working with slices.
 - `slice.FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)`
 - `slice.Filter[A any](as []A, p func(a A) bool) (res []A)`
 - `slice.FilterNot[A any](as []A, p func(a A) bool) (res []A)` - same as `Filter`, but inverses the predicate `p`.
+- `slice.Count[A any](as []A, predicate Predicate[A]) (cnt int)` - Count counts the number of elements that satisfy the given predicate.
 - `slice.Flatten[A any](ass [][]A)(aas[]A)`
 - `slice.AppendAll[A any](ass ...[]A) (aas []A)` - AppendAll concatenates all slices.
 - `slice.GroupBy[A any, K comparable](as []A, f func(A)K) (res map[K][]A)` - GroupBy groups elements by a function that returns a key.

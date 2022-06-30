@@ -66,3 +66,8 @@ func TestGroupByMapCount(t *testing.T) {
 	assert.Equal(t, 5, counted[false])
 	assert.Equal(t, 5, counted[true])
 }
+
+func TestCount(t *testing.T) {
+	cntEven := slice.Count(nats10Values, IsEven)
+	assert.Equal(t, 5, cntEven)
+}
