@@ -109,7 +109,7 @@ func FlatMap[A any, B any](ra Resource[A], f func(a A) Resource[B]) Resource[B] 
 // ClosableIOTransform transforms a closable of io closable to just io closable.
 func ClosableIOTransform[A any](cioca Closable[io.IO[Closable[A]]]) (ioca io.IO[Closable[A]]) {
 	return io.Eval(func() (ca Closable[A], err error) {
-		defer io.RecoverToErrorVar("resource.ClosableIOTransform", &err)
+		defer fun.RecoverToErrorVar("resource.ClosableIOTransform", &err)
 		ca = ClosableFlatMap(cioca, func(ioca io.IO[Closable[A]]) (ca1 Closable[A]) {
 			ca1, err = io.UnsafeRunSync(ioca)
 			return

@@ -10,7 +10,7 @@ import (
 func ToChannel[A any](ch chan<- A) func(A) IO[fun.Unit] {
 	return func(a A) IO[fun.Unit] {
 		return FromUnit(func() (err error) {
-			defer RecoverToErrorVar("writing to channel", &err)
+			defer fun.RecoverToErrorVar("writing to channel", &err)
 			ch <- a
 			return nil
 		})

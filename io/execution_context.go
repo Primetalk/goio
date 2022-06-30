@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/primetalk/goio/fun"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -32,7 +33,7 @@ type executionContextImpl struct {
 // It'll place the runnable into this execution context.
 func (c executionContextImpl) Start(neverFailingTask Runnable) IOUnit {
 	return FromUnit(func() (err error) {
-		defer RecoverToErrorVar(c.name+".start", &err)
+		defer fun.RecoverToErrorVar(c.name+".start", &err)
 		c.neverFailingTasksChannel <- neverFailingTask
 		return
 	})

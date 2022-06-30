@@ -72,7 +72,7 @@ func StartInExecutionContext[A any](ec ExecutionContext) func(io IO[A]) IO[Fiber
 				callbacks: []Callback[A]{},
 			}
 			goRoutine := func() {
-				defer RecoverToLog("StartInExecutionContext.goRoutine")
+				defer fun.RecoverToLog("StartInExecutionContext.goRoutine")
 				a, err1 := UnsafeRunSync(io)
 				fiber.mu.Lock()
 				fiber.result = &GoResult[A]{a, err1}
