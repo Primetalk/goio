@@ -1,10 +1,10 @@
-package io_test
+package fun_test
 
 import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/primetalk/goio/io"
+	"github.com/primetalk/goio/fun"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +18,7 @@ func TestPanicRecovery(t *testing.T) {
 }
 
 func myFunc() (a, b int, err error) {
-	defer io.RecoverToErrorVar("myFunc", &err)
+	defer fun.RecoverToErrorVar("myFunc", &err)
 	a = 1
 	if a == 1 {
 		err2 := errors.New("TEST ERROR in myFunc. Code = CHECK")
