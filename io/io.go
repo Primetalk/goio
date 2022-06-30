@@ -26,7 +26,7 @@ func LiftPair[A any](a A, err error) IO[A] {
 
 // UnsafeRunSync runs the given IO[A] synchronously and returns the result.
 func UnsafeRunSync[A any](io IO[A]) (res A, err error) {
-	defer RecoverToErrorVar("UnsafeRunSync", &err)
+	defer fun.RecoverToErrorVar("UnsafeRunSync", &err)
 	return ObtainResult(Continuation[A](io))
 }
 
@@ -183,7 +183,10 @@ func Fold[A any, B any](ioA IO[A], f func(a A) IO[B], recover func(error) IO[B])
 				return recover(rA.Error)()
 			}
 		} else {
-			return Fold(IO[A](*rA.Continuation), f, recover)()
+			cont := Continuation[B](Fold(IO[A](*rA.Continuation), f, recover))
+			return ResultOrContinuation[B]{
+				Continuation: &cont,
+			}
 		}
 	}
 }
