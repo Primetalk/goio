@@ -29,8 +29,11 @@ func FoldLeft[A any, B any](as []A, zero B, f func(B, A) B) (res B) {
 	return
 }
 
+// Predicate is a function with a boolean result type.
+type Predicate[A any] func(A) bool
+
 // Filter filters slice values.
-func Filter[A any](as []A, p func(a A) bool) (res []A) {
+func Filter[A any](as []A, p Predicate[A]) (res []A) {
 	res = make([]A, 0, len(as))
 	for _, a := range as {
 		if p(a) {
@@ -41,11 +44,22 @@ func Filter[A any](as []A, p func(a A) bool) (res []A) {
 }
 
 // FilterNot filters slice values inverting the condition.
-func FilterNot[A any](as []A, p func(a A) bool) (res []A) {
+func FilterNot[A any](as []A, p Predicate[A]) (res []A) {
 	res = make([]A, 0, len(as))
 	for _, a := range as {
 		if !p(a) {
 			res = append(res, a)
+		}
+	}
+	return
+}
+
+// Count counts the number of elements that satisfy the given predicate.
+func Count[A any](as []A, predicate Predicate[A]) (cnt int) {
+	cnt = 0
+	for _, a := range as {
+		if predicate(a) {
+			cnt += 1
 		}
 	}
 	return
