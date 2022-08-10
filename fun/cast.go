@@ -1,6 +1,6 @@
 package fun
 
-type Any interface {}
+type Any interface{}
 
 // CastAsInterface casts a value of an arbitrary type as interface {}.
 func CastAsInterface[A any](a A) Any {
@@ -13,7 +13,7 @@ func CastAsInterface[A any](a A) Any {
 func Cast[A any](i Any) (a A, err error) {
 	defer RecoverToErrorVar("Cast", &err)
 	a = i.(A)
-	return 
+	return
 }
 
 // UnsafeCast converts interface {} to ordinary type A.
