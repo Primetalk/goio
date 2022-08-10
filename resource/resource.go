@@ -127,7 +127,5 @@ func UnbufferedChannel[A any]() Resource[chan A] {
 
 // Fail creates a resource that will fail during acquisition.
 func Fail[A any](err error) Resource[A] {
-	return NewResource(io.Fail[A](err), func(A) io.IOUnit {
-		return io.IOUnit1
-	})
+	return NewResource(io.Fail[A](err), fun.Const[A](io.IOUnit1))
 }
