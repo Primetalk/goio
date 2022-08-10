@@ -104,3 +104,17 @@ func TestGroupBy(t *testing.T) {
 	}
 	assert.ElementsMatch(t, expected, groups)
 }
+
+func TestGroupByEval(t *testing.T) {
+	groupedNats := stream.GroupByEval(stream.Take(nats, 7), func(i int) io.IO[int] {
+		return io.Lift(i / 5)
+	})
+	groupsIO := stream.ToSlice(groupedNats)
+	groups, err := io.UnsafeRunSync(groupsIO)
+	assert.NoError(t, err)
+	expected := []fun.Pair[int, []int]{
+		{V1: 0, V2: []int{1, 2, 3, 4}},
+		{V1: 1, V2: []int{5, 6, 7}},
+	}
+	assert.ElementsMatch(t, expected, groups)
+}

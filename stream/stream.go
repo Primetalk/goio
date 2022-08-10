@@ -265,3 +265,44 @@ func GroupBy[A any, K comparable](stm Stream[A], key func(A) K) Stream[fun.Pair[
 		},
 	)
 }
+
+// GroupByEval collects group by a user-provided key (which is evaluated as IO).
+// Whenever a new key is encountered, the previous group is emitted.
+// When the original stream finishes, the last group is emitted.
+func GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Stream[fun.Pair[K, []A]] {
+	zero := fun.Pair[K, []A]{
+		V2: []A{},
+	}
+	return StateFlatMapWithFinish(stm,
+		zero,
+		func(a A, s fun.Pair[K, []A]) io.IO[fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]] {
+			return io.Map(keyIO(a), func(aKey K) (result fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]) {
+				if len(s.V2) == 0 || s.V1 == aKey {
+					result = fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]{
+						V1: fun.Pair[K, []A]{
+							V1: aKey,
+							V2: append(s.V2, a),
+						},
+						V2: Empty[fun.Pair[K, []A]](),
+					}
+				} else {
+					result = fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]{
+						V1: fun.Pair[K, []A]{
+							V1: aKey,
+							V2: []A{a},
+						},
+						V2: Lift(s),
+					}
+				}
+				return
+			})
+		},
+		func(last fun.Pair[K, []A]) Stream[fun.Pair[K, []A]] {
+			if len(last.V2) == 0 {
+				return Empty[fun.Pair[K, []A]]()
+			} else {
+				return Lift(last)
+			}
+		},
+	)
+}
