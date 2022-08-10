@@ -118,9 +118,14 @@ func ClosableIOTransform[A any](cioca Closable[io.IO[Closable[A]]]) (ioca io.IO[
 	})
 }
 
-// UnbufferedChannel returns a resource that manages channel.
+// UnbufferedChannel returns a resource that manages a channel.
 func UnbufferedChannel[A any]() Resource[chan A] {
 	return NewResource(io.MakeUnbufferedChannel[A](), func(ch chan A) io.IOUnit {
 		return io.CloseChannel(ch)
 	})
+}
+
+// Fail creates a resource that will fail during acquisition.
+func Fail[A any](err error) Resource[A] {
+	return NewResource(io.Fail[A](err), fun.Const[A](io.IOUnit1))
 }

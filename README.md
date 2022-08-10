@@ -171,6 +171,7 @@ type ClosableIO interface {
 ```
 - `resource.FromClosableIO[A ClosableIO](ioa io.IO[A]) Resource[A]` - FromClosableIO constructs a new resource from some value that itself supports method Close.
 - `resource.BoundedExecutionContextResource(size int64, queueLimit int) Resource[io.ExecutionContext]` - BoundedExecutionContextResource returns a resource that is a bounded execution context.
+- `resource.Fail[A any](err error) Resource[A]` - Fail creates a resource that will fail during acquisition.
 
 ## Parallel computing
 

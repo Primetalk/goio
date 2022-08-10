@@ -30,6 +30,7 @@ func TestResource(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, res9, 9)
 }
+
 func TestResourceFail(t *testing.T) {
 	released := false
 	res := resource.NewResource(
@@ -47,6 +48,16 @@ func TestResourceFail(t *testing.T) {
 	_, err := io.UnsafeRunSync(failed)
 	assert.NotEqual(t, err, nil)
 	assert.True(t, released)
+}
+
+func TestFailedResource(t *testing.T) {
+	expectedErr := errors.New("some error")
+	res := resource.Fail[string](expectedErr)
+	failed := resource.Use(res, func(s string) io.IO[int] {
+		return io.Fail[int](errors.New("some other error"))
+	})
+	_, err := io.UnsafeRunSync(failed)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestChannelResource(t *testing.T) {
