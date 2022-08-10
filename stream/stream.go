@@ -52,7 +52,7 @@ func NewStepResultFinished[A any]() StepResult[A] {
 
 // MapEval maps the values of the stream. The provided function returns an IO.
 func MapEval[A any, B any](stm Stream[A], f func(a A) io.IO[B]) Stream[B] {
-	return Stream[B](io.FlatMap[StepResult[A]](
+	return Stream[B](io.FlatMap(
 		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) io.IO[StepResult[B]] {
 			if sra.IsFinished {
@@ -89,7 +89,7 @@ func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 
 // AndThenLazy appends another stream. The other stream is constructed lazily.
 func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
-	return Stream[A](io.FlatMap[StepResult[A]](
+	return Stream[A](io.FlatMap(
 		io.IO[StepResult[A]](stm1),
 		func(sra StepResult[A]) io.IO[StepResult[A]] {
 			if sra.IsFinished {
@@ -107,7 +107,7 @@ func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
 
 // FlatMap constructs a
 func FlatMap[A any, B any](stm Stream[A], f func(a A) Stream[B]) Stream[B] {
-	return Stream[B](io.FlatMap[StepResult[A]](
+	return Stream[B](io.FlatMap(
 		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) io.IO[StepResult[B]] {
 			if sra.IsFinished {
@@ -146,7 +146,7 @@ func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A],
 	zero S,
 	f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]],
 	onFinish func(s S) Stream[B]) Stream[B] {
-	res := io.FlatMap[StepResult[A]](
+	res := io.FlatMap(
 		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) (iores io.IO[StepResult[B]]) {
 			if sra.IsFinished {
@@ -168,7 +168,7 @@ func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A],
 
 // Filter leaves in the stream only the elements that satisfy the given predicate.
 func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
-	return Stream[A](io.Map[StepResult[A]](
+	return Stream[A](io.Map(
 		io.IO[StepResult[A]](stm),
 		func(sra StepResult[A]) StepResult[A] {
 			if sra.IsFinished {
@@ -222,4 +222,46 @@ func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
 // Fail returns a stream that fails immediately.
 func Fail[A any](err error) Stream[A] {
 	return Eval(io.Fail[A](err))
+}
+
+// GroupBy collects group by a user-provided key. Whenever a new key is encountered,
+// the previous group is emitted.
+// When the original stream finishes, the last group is emitted.
+func GroupBy[A any, K comparable](stm Stream[A], key func(A) K) Stream[fun.Pair[K, []A]] {
+	zero := fun.Pair[K, []A]{
+		V2: []A{},
+	}
+	return StateFlatMapWithFinish(stm,
+		zero,
+		func(a A, s fun.Pair[K, []A]) io.IO[fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]] {
+			return io.Pure(func() (result fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]) {
+				aKey := key(a)
+				if len(s.V2) == 0 || s.V1 == aKey {
+					result = fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]{
+						V1: fun.Pair[K, []A]{
+							V1: aKey,
+							V2: append(s.V2, a),
+						},
+						V2: Empty[fun.Pair[K, []A]](),
+					}
+				} else {
+					result = fun.Pair[fun.Pair[K, []A], Stream[fun.Pair[K, []A]]]{
+						V1: fun.Pair[K, []A]{
+							V1: aKey,
+							V2: []A{a},
+						},
+						V2: Lift(s),
+					}
+				}
+				return
+			})
+		},
+		func(last fun.Pair[K, []A]) Stream[fun.Pair[K, []A]] {
+			if len(last.V2) == 0 {
+				return Empty[fun.Pair[K, []A]]()
+			} else {
+				return Lift(last)
+			}
+		},
+	)
 }

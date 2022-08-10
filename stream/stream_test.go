@@ -3,6 +3,7 @@ package stream_test
 import (
 	"testing"
 
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 	"github.com/primetalk/goio/stream"
 	"github.com/stretchr/testify/assert"
@@ -88,4 +89,18 @@ func TestChunks(t *testing.T) {
 	nats10to19, err := io.UnsafeRunSync(nats10to19IO)
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int{11, 12, 13, 14, 15, 16, 17, 18, 19}, nats10to19)
+}
+
+func TestGroupBy(t *testing.T) {
+	groupedNats := stream.GroupBy(stream.Take(nats, 7), func(i int) int {
+		return i / 5
+	})
+	groupsIO := stream.ToSlice(groupedNats)
+	groups, err := io.UnsafeRunSync(groupsIO)
+	assert.NoError(t, err)
+	expected := []fun.Pair[int, []int]{
+		{V1: 0, V2: []int{1, 2, 3, 4}},
+		{V1: 1, V2: []int{5, 6, 7}},
+	}
+	assert.ElementsMatch(t, expected, groups)
 }
