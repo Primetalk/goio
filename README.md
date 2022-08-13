@@ -346,6 +346,8 @@ We may wish to execute these tasks using a pool of workers of a given size.
 
 - `stream.NewPool[A any](size int) io.IO[Pool[A]]` - NewPool creates an execution pool that will execute tasks concurrently. Simultaneously there could be as many as size executions.
 - `stream.ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]]` - ThroughPool runs a stream of tasks through the pool.
+- `stream.NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io.IO[Pool[A]]` - NewPoolFromExecutionContext creates an execution pool that will execute tasks concurrently.
+- `stream.ThroughExecutionContext[A any](sa Stream[io.IO[A]], ec io.ExecutionContext, capacity int) Stream[io.GoResult[A]]` - ThroughExecutionContext runs a stream of tasks through an ExecutionContext.
 
 ## Text processing
 
