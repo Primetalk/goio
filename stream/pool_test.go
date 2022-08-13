@@ -42,12 +42,12 @@ func TestExecutionContext(t *testing.T) {
 		})
 	}
 	sleepTasks := stream.Map(nats, sleep10ms)
-	sleepTasks100 := stream.Take(sleepTasks, 100)
+	sz := 100
 
-	concurrency := 2
+	sleepTasks100 := stream.Take(sleepTasks, sz)
+	concurrency := 10
 	ec := io.BoundedExecutionContext(concurrency,0)
 	// poolIO := stream.NewPoolFromExecutionContext[int](ec, concurrency)
-
 	// resultsIO := io.FlatMap(poolIO, func(pool stream.Pool[int]) io.IO[[]int] {
 	sleepResults := stream.ThroughExecutionContext(sleepTasks100, ec, concurrency)
 	resultStream := stream.MapEval(sleepResults, io.FromConstantGoResult[int])
@@ -56,6 +56,7 @@ func TestExecutionContext(t *testing.T) {
 	start := time.Now()
 	results, err := io.UnsafeRunSync(resultsIO)
 	assert.NoError(t, err)
-	assert.Equal(t, 100, slice.SetSize(slice.ToSet(results)))
-	assert.WithinDuration(t, start, time.Now(), 200*time.Millisecond)
+	assert.Equal(t, sz, slice.SetSize(slice.ToSet(results)))
+	required_duration := 10 * sz/concurrency + 50
+	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration) *time.Millisecond)
 }
