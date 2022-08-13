@@ -170,7 +170,7 @@ type ClosableIO interface {
 }
 ```
 - `resource.FromClosableIO[A ClosableIO](ioa io.IO[A]) Resource[A]` - FromClosableIO constructs a new resource from some value that itself supports method Close.
-- `resource.BoundedExecutionContextResource(size int64, queueLimit int) Resource[io.ExecutionContext]` - BoundedExecutionContextResource returns a resource that is a bounded execution context.
+- `resource.BoundedExecutionContextResource(size int, queueLimit int) Resource[io.ExecutionContext]` - BoundedExecutionContextResource returns a resource that is a bounded execution context.
 - `resource.Fail[A any](err error) Resource[A]` - Fail creates a resource that will fail during acquisition.
 
 ## Parallel computing
@@ -197,6 +197,7 @@ type Fiber[A any] interface {
 
 - `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
 - `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
+- `io.FailedFiber[A any](err error) Fiber[A]` - FailedFiber creates a fiber that will fail on Join or Close with the given error.
 
 ### Execution contexts
 
@@ -218,7 +219,7 @@ type ExecutionContext interface {
 There are two kinds of execution contexts - `UnboundedExecutionContext` and `BoundedExecutionContext`. Unbounded is recommended for IO-bound operations while bounded is for CPU-intensive tasks.
 
 - `io.UnboundedExecutionContext() io.ExecutionContext` - UnboundedExecutionContext runs each task in a new go routine.
-- `io.BoundedExecutionContext(size int64, queueLimit int) io.ExecutionContext` - BoundedExecutionContext creates an execution context that will execute tasks concurrently. Simultaneously there could be as many as `size` executions. If there are more tasks than could be started immediately they will be placed in a queue. If the queue is exhausted, `Start` will block until some tasks are run. The recommended queue size is 0 (all tasks are immediately sent to the execution). This provides immediate back pressure in case of starvation.
+- `io.BoundedExecutionContext(size int, queueLimit int) io.ExecutionContext` - BoundedExecutionContext creates an execution context that will execute tasks concurrently. Simultaneously there could be as many as `size` executions. If there are more tasks than could be started immediately they will be placed in a queue. If the queue is exhausted, `Start` will block until some tasks are run. The recommended queue size is 0 (all tasks are immediately sent to the execution). This provides immediate back pressure in case of starvation.
 
 ### Using channels with IO and parallel computations
 
