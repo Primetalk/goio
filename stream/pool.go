@@ -46,7 +46,7 @@ func NewPool[A any](size int) io.IO[Pool[A]] {
 func NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io.IO[Pool[A]] {
 	return io.Pure(func() Pool[A] {
 		input := make(chan io.IO[A])
-		output := make(chan io.Fiber[A])
+		output := make(chan io.Fiber[A], capacity)
 		driver := func() {
 			for i := range input {
 				fiberIO := io.StartInExecutionContext[A](ec)(i)
