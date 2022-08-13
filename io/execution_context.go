@@ -67,13 +67,13 @@ func UnboundedExecutionContext() ExecutionContext {
 // If there are more tasks than could be started immediately they will be placed in a queue.
 // If the queue is exhausted, Start will block until some tasks are run.
 // Recommended queue size is 0.
-func BoundedExecutionContext(size int64, queueLimit int) ExecutionContext {
+func BoundedExecutionContext(size int, queueLimit int) ExecutionContext {
 	neverFailingTasksChannel := make(chan Runnable, queueLimit)
 	ec := executionContextImpl{
 		name:                     fmt.Sprintf("BoundedExecutionContext(%d, %d)", size, queueLimit),
 		neverFailingTasksChannel: neverFailingTasksChannel,
 	}
-	sem := semaphore.NewWeighted(size)
+	sem := semaphore.NewWeighted(int64(size))
 	ctx := context.Background()
 	taskRunner := func() {
 		for taskLoopVar := range neverFailingTasksChannel {
