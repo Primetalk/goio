@@ -35,3 +35,11 @@ func TestFlatten(t *testing.T) {
 	assert.Equal(t, "hello", option.Get(option.Flatten(option.Some(ohello))))
 	assert.Panics(t, func() { option.Get(option.Flatten(option.Some(onone))) })
 }
+func TestForEach(t *testing.T) {
+	option.ForEach(ohello, func(s string) {
+		assert.Equal(t, "hello", s)
+	})
+	option.ForEach(onone, func(s string) {
+		assert.Fail(t, "unexpected call")
+	})
+}

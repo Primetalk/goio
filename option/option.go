@@ -73,3 +73,10 @@ func Flatten[A any](ooa Option[Option[A]]) Option[A] {
 func Get[A any](oa Option[A]) A {
 	return Fold(oa, fun.Identity[A], fun.Nothing[A])
 }
+
+// ForEach runs the given function on the value if it's available.
+func ForEach[A any](oa Option[A], f func(A)) {
+	if oa.ValueOrNil != nil {
+		f(*oa.ValueOrNil)
+	}
+}
