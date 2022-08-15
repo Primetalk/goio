@@ -19,7 +19,7 @@ func CreateSleeps(count int) (ios []io.IO[int]) {
 
 func TestParallel(t *testing.T) {
 	start := time.Now()
-	ioall := io.Parallel(CreateSleeps(100))
+	ioall := io.Parallel(CreateSleeps(100)...)
 	results, err := io.UnsafeRunSync(ioall)
 	assert.Equal(t, err, nil)
 	end := time.Now()

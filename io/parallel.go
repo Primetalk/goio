@@ -21,7 +21,7 @@ func ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO
 }
 
 // Parallel starts the given IOs in Go routines and waits for all results.
-func Parallel[A any](ios []IO[A]) IO[[]A] {
+func Parallel[A any](ios ...IO[A]) IO[[]A] {
 	return ParallelInExecutionContext[A](globalUnboundedExecutionContext)(ios)
 }
 
@@ -38,7 +38,7 @@ func ConcurrentlyFirst[A any](ios []IO[A]) IO[A] {
 			goResult := FoldToGoResult(ioa)
 			return FlatMap(goResult, ToChannel(channel))
 		})
-		parallelSendResults := Parallel(ioSendToChannel)
+		parallelSendResults := Parallel(ioSendToChannel...)
 		ignoreParallelResultButCloseChannelAfterwards := FireAndForget(AndThen(parallelSendResults, CloseChannel(channel)))
 		readFirstFromChannel := FromChannel(channel)
 		ignoreParallelResultsAndThenReadFirstFromChannel := AndThen(

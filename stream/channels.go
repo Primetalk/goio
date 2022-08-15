@@ -35,7 +35,7 @@ func ToChannels[A any](stm Stream[A], channels ...chan<- A) io.IO[fun.Unit] {
 			})
 		})
 	closeChannels := io.Parallel(
-		slice.Map(channels, io.CloseChannel[A]),
+		slice.Map(channels, io.CloseChannel[A])...,
 	)
 	return io.Finally(
 		DrainAll(stmUnits),

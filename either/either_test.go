@@ -14,5 +14,5 @@ func TestEither(t *testing.T) {
 	assert.Equal(t, "other", either.Fold(either.Right[string]("right"), fun.Identity[string], fun.Const[string]("other")))
 	assert.Equal(t, "left", option.Get(either.GetLeft(either.Left[string, string]("left"))))
 	assert.Equal(t, "Right", option.Get(either.GetRight(either.Right[string]("Right"))))
-	assert.Equal(t, "left", option.IsEmpty(either.GetLeft(either.Right[string]("left"))))
+	assert.True(t, option.IsEmpty(either.GetLeft(either.Right[string]("left"))))
 }
