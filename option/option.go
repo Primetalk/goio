@@ -80,3 +80,13 @@ func ForEach[A any](oa Option[A], f func(A)) {
 		f(*oa.ValueOrNil)
 	}
 }
+
+// IsDefined checks whether the option contains a value.
+func IsDefined[A any](oa Option[A]) bool {
+	return oa.ValueOrNil != nil
+}
+
+// IsEmpty checks whether the option is empty.
+func IsEmpty[A any](oa Option[A]) bool {
+	return oa.ValueOrNil == nil
+}

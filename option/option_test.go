@@ -31,6 +31,11 @@ func TestFilter(t *testing.T) {
 	assert.Equal(t, onone, option.Filter(onone, Contains("llo")))
 }
 
+func TestIsDefined(t *testing.T) {
+	assert.True(t, option.IsDefined(ohello))
+	assert.True(t, option.IsEmpty(onone))
+}
+
 func TestFlatten(t *testing.T) {
 	assert.Equal(t, "hello", option.Get(option.Flatten(option.Some(ohello))))
 	assert.Panics(t, func() { option.Get(option.Flatten(option.Some(onone))) })
