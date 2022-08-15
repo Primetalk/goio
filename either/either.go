@@ -1,5 +1,7 @@
 package either
 
+import "github.com/primetalk/goio/option"
+
 // Either is a simple data structure that can have either left value or right value.
 type Either[A any, B any] struct {
 	IsLeft bool
@@ -39,5 +41,23 @@ func Fold[A any, B any, C any](eab Either[A, B], left func(A) C, right func(B) C
 		return left(eab.Left)
 	} else {
 		return right(eab.Right)
+	}
+}
+
+// GetLeft returns left if it's defined.
+func GetLeft[A any, B any](eab Either[A, B]) option.Option[A] {
+	if IsLeft(eab) {
+		return option.Some(eab.Left)
+	} else {
+		return option.None[A]()
+	}
+}
+
+// GetRight returns left if it's defined.
+func GetRight[A any, B any](eab Either[A, B]) option.Option[B] {
+	if IsLeft(eab) {
+		return option.None[B]()
+	} else {
+		return option.Some(eab.Right)
 	}
 }
