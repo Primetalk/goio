@@ -3,24 +3,41 @@ package stream
 import (
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
+	"github.com/primetalk/goio/slice"
 )
 
 // ToChannel sends all stream elements to the given channel.
 // When stream is completed, channel is closed.
 // The IO blocks until the stream is exhausted.
+// If the stream is failed, the channel is closed
 func ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit] {
-	stmUnits := StateFlatMapWithFinish(stm, ch,
-		func(a A, ch chan<- A) io.IO[fun.Pair[chan<- A, Stream[fun.Unit]]] {
-			return io.AndThen(io.FromPureEffect(func() {
+	stmUnits := MapEval(stm,
+		func(a A) io.IO[fun.Unit] {
+			return io.FromPureEffect(func() {
 				ch <- a
-			}), io.Lift(fun.NewPair(ch, Empty[fun.Unit]())))
-		},
-		func(ch chan<- A) Stream[fun.Unit] {
-			return Eval(io.FromPureEffect(func() {
-				close(ch)
-			}))
+			})
 		})
-	return DrainAll(stmUnits)
+	return io.Finally(DrainAll(stmUnits), io.CloseChannel(ch))
+}
+
+// ToChannels sends each stream element to every given channel.
+func ToChannels[A any](stm Stream[A], channels ...chan<- A) io.IO[fun.Unit] {
+	stmUnits := MapEval(stm,
+		func(a A) io.IO[fun.Unit] {
+			return io.FromPureEffect(func() {
+				for _, ch := range channels {
+					ch <- a
+				}
+			})
+		})
+	return io.Finally(DrainAll(stmUnits),
+		io.Map(
+			io.Parallel(
+				slice.Map(channels, io.CloseChannel[A]),
+			),
+			fun.Const[[]fun.Unit](fun.Unit1),
+		),
+	)
 }
 
 // FromChannel constructs a stream that reads from the given channel

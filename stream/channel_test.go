@@ -18,6 +18,21 @@ func TestSendingDataThroughChannel(t *testing.T) {
 	assert.ElementsMatch(t, results, nats10Values)
 }
 
+func TestToChannels(t *testing.T) {
+	ch1 := make(chan int, 10)
+	ch2 := make(chan int, 10)
+	drainIO := stream.ToChannels(nats10, ch1, ch2)
+	_, err := io.UnsafeRunSync(drainIO)
+	assert.NoError(t, err)
+	slice1IO := stream.ToSlice(stream.FromChannel(ch1))
+	slice1, err := io.UnsafeRunSync(slice1IO)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, nats10Values, slice1)
+	slice2IO := stream.ToSlice(stream.FromChannel(ch2))
+	slice2, err := io.UnsafeRunSync(slice2IO)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, nats10Values, slice2)
+}
 func TestStreamConversion(t *testing.T) {
 	io2 := io.ForEach(pipeMul2IO, func(pair fun.Pair[chan<- int, <-chan int]) {
 		input := pair.V1

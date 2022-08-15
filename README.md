@@ -306,7 +306,8 @@ After constructing the desired pipeline, the stream needs to be executed.
 
 Provides a few utilities for working with channels:
 
-- `stream.ToChannel[A any](stm Stream[A], ch chan A) io.IO[fun.Unit]` - sends all stream elements to the given channel
+- `stream.ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit]` - sends all stream elements to the given channel.
+- `stream.ToChannels[A any](stm Stream[A], channels ... chan<- A) io.IO[fun.Unit]` - ToChannels sends each stream element to every given channel.
 - `stream.FromChannel[A any](ch chan A) Stream[A]` - constructs a stream that reads from the given channel until the channel is open.
 - `stream.PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B]` - PairOfChannelsToPipe - takes two channels that are being used to talk to some external process and convert them into a single pipe. It first starts a separate go routine that will continously run the input stream and send all it's contents to the `input` channel. The current thread is left with reading from the output channel.
 - `stream.PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, chan B]]` - PipeToPairOfChannels converts a streaming pipe to a pair of channels that could be used to interact with external systems.
