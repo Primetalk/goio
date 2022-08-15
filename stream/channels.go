@@ -9,7 +9,10 @@ import (
 // ToChannel sends all stream elements to the given channel.
 // When stream is completed, channel is closed.
 // The IO blocks until the stream is exhausted.
-// If the stream is failed, the channel is closed
+// If the stream is failed, the channel is closed anyway.
+// NB! The failure cannot be communicated via channel of type A.
+// Hence, on the reading side there is no way to see whether it was a successful completion
+// or a failed one.
 func ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit] {
 	stmUnits := MapEval(stm,
 		func(a A) io.IO[fun.Unit] {
@@ -21,6 +24,7 @@ func ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit] {
 }
 
 // ToChannels sends each stream element to every given channel.
+// Failure or completion of the stream leads to closure of all channels.
 func ToChannels[A any](stm Stream[A], channels ...chan<- A) io.IO[fun.Unit] {
 	stmUnits := MapEval(stm,
 		func(a A) io.IO[fun.Unit] {
@@ -30,13 +34,12 @@ func ToChannels[A any](stm Stream[A], channels ...chan<- A) io.IO[fun.Unit] {
 				}
 			})
 		})
-	return io.Finally(DrainAll(stmUnits),
-		io.Map(
-			io.Parallel(
-				slice.Map(channels, io.CloseChannel[A]),
-			),
-			fun.Const[[]fun.Unit](fun.Unit1),
-		),
+	closeChannels := io.Parallel(
+		slice.Map(channels, io.CloseChannel[A]),
+	)
+	return io.Finally(
+		DrainAll(stmUnits),
+		io.Ignore(closeChannels),
 	)
 }
 
