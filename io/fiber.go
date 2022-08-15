@@ -108,6 +108,7 @@ func FireAndForget[A any](ioa IO[A]) IO[fun.Unit] {
 type failedFiberImpl[A any] struct {
 	Error error
 }
+
 // FailedFiber creates a fiber that will fail on Join or Close with the given error.
 func FailedFiber[A any](err error) Fiber[A] {
 	return &failedFiberImpl[A]{

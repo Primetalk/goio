@@ -1,6 +1,8 @@
 // Package slice provides common utility functions to Go slices.
 package slice
 
+import "github.com/primetalk/goio/option"
+
 // Map converts all values of a slice using the provided function.
 func Map[A any, B any](as []A, f func(A) B) (bs []B) {
 	bs = make([]B, 0, len(as))
@@ -166,4 +168,16 @@ func MapValues[K comparable, A any, B any](m map[K]A, f func(A) B) (res map[K]B)
 // This is a normal function that can be passed around unlike the built-in `len`.
 func Len[A any](as []A) int {
 	return len(as)
+}
+
+// Collect runs through the slice, executes the given function and
+// only keeps good returned values.
+func Collect[A any, B any](as []A, f func(a A) option.Option[B]) (bs []B) {
+	for _, a := range as {
+		bo := f(a)
+		option.ForEach(bo, func(b B) {
+			bs = append(bs, b)
+		})
+	}
+	return
 }

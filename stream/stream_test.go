@@ -1,6 +1,7 @@
 package stream_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/primetalk/goio/fun"
@@ -117,4 +118,18 @@ func TestGroupByEval(t *testing.T) {
 		{V1: 1, V2: []int{5, 6, 7}},
 	}
 	assert.ElementsMatch(t, expected, groups)
+}
+
+func TestFailedStream(t *testing.T) {
+	expectedError := errors.New("expected error")
+	failedStream := stream.Eval(io.Fail[int](expectedError))
+	ch := make(chan int)
+	toChIO := stream.ToChannel(failedStream, ch)
+	fromCh := stream.FromChannel(ch)
+	sliceIO := stream.ToSlice(fromCh)
+	resIO := io.AndThen(toChIO, sliceIO)
+	_, err1 := io.UnsafeRunSync(resIO)
+	if assert.Error(t, err1) {
+		assert.Equal(t, expectedError, err1)
+	}
 }

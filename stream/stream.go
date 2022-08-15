@@ -4,6 +4,7 @@
 package stream
 
 import (
+	"github.com/primetalk/goio/either"
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 	"github.com/primetalk/goio/slice"
@@ -184,6 +185,14 @@ func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 		}))
 }
 
+// Filter leaves in the stream only the elements
+// that do not satisfy the given predicate.
+func FilterNot[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
+	return Filter(stm, func(a A) bool {
+		return !predicate(a)
+	})
+}
+
 // Sum is a pipe that returns a stream of 1 element that is sum of all elements of the original stream.
 func Sum[A slice.Number](sa Stream[A]) Stream[A] {
 	var zero A
@@ -305,4 +314,28 @@ func GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Str
 			}
 		},
 	)
+}
+
+// FanOut distributes the same element to all handlers.
+func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) io.IO[[]B] {
+	var channels []chan A
+	// NB: sideeffectful mapping:
+	ios := slice.Map(handlers, func(handler func(Stream[A]) io.IO[B]) io.IO[B] {
+		ch := make(chan A)
+		channels = append(channels, ch)
+		stmCh := FromChannel(ch)
+		return handler(stmCh)
+	})
+	channelsIn := slice.Map(channels, func(ch chan A) chan<- A {
+		return ch
+	})
+	toChannelsIO := ToChannels(stm, channelsIn...)
+	toChannelsIOCompatible := io.Map(toChannelsIO, either.Left[fun.Unit, []B])
+	iosParallelIO := io.Parallel(ios...)
+	iosParallelIOCompatible := io.Map(iosParallelIO, either.Right[fun.Unit, []B])
+	both := io.Parallel(toChannelsIOCompatible, iosParallelIOCompatible)
+	onlyRight := io.Map(both, func(eithers []either.Either[fun.Unit, []B]) []B {
+		return slice.Flatten(slice.Collect(eithers, either.GetRight[fun.Unit, []B]))
+	})
+	return onlyRight
 }

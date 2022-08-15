@@ -24,11 +24,6 @@ func TestPair(t *testing.T) {
 	assert.Equal(t, "b", fun.NewPair("a", "b").V2)
 }
 
-func TestEither(t *testing.T) {
-	assert.Equal(t, "left", fun.Fold(fun.Left[string, string]("left"), fun.Identity[string], fun.Const[string]("other")))
-	assert.Equal(t, "other", fun.Fold(fun.Right[string]("right"), fun.Identity[string], fun.Const[string]("other")))
-}
-
 func TestToString(t *testing.T) {
 	assert.Equal(t, "1", fun.ToString(1))
 }

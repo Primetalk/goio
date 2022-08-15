@@ -66,8 +66,8 @@ func NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io
 		}
 		go driver()
 		pool := PairOfChannelsToPipe(input, output)
-		pool2 := func (sioa Stream[io.IO[A]]) Stream[io.GoResult[A]] {
-			return MapEval(pool(sioa), func (fa io.Fiber[A]) io.IO[io.GoResult[A]] {
+		pool2 := func(sioa Stream[io.IO[A]]) Stream[io.GoResult[A]] {
+			return MapEval(pool(sioa), func(fa io.Fiber[A]) io.IO[io.GoResult[A]] {
 				return io.FoldToGoResult(fa.Join())
 			})
 		}
@@ -83,7 +83,7 @@ func ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]
 // ThroughExecutionContext runs a stream of tasks through an ExecutionContext.
 func ThroughExecutionContext[A any](sa Stream[io.IO[A]], ec io.ExecutionContext, capacity int) Stream[io.GoResult[A]] {
 	poolIO := NewPoolFromExecutionContext[A](ec, capacity)
-	return FlatMap(Eval(poolIO), func (pool Pool[A]) Stream[io.GoResult[A]] {
+	return FlatMap(Eval(poolIO), func(pool Pool[A]) Stream[io.GoResult[A]] {
 		return pool(sa)
 	})
 }
