@@ -300,3 +300,8 @@ func Finally[A any](io IO[A], finalizer IO[fun.Unit]) IO[A] {
 
 		})
 }
+
+// Ignore throws away the result of IO.
+func Ignore[A any](ioa IO[A]) IOUnit {
+	return Map(ioa, fun.Const[A](fun.Unit1))
+}

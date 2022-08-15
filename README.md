@@ -132,6 +132,7 @@ The following functions could be used to manipulate computations:
 - `io.Unptr[A any](ptra *A) IO[A]` - retrieves the value at pointer. Fails if nil
 - `io.Wrapf[A any](io IO[A], format string, args...interface{}) IO[A]` - wraps an error with additional context information
 - `io.Finally[A any](io IO[A], finalizer IO[fun.Unit]) IO[A]` - Finally runs the finalizer regardless of the success of the IO. In case finalizer fails as well, the second error is printed to log.
+- `io.Ignore[A any](ioa IO[A]) IOUnit` - Ignore throws away the result of IO.
 
 To and from `GoResult` - allows to handle both good value and an error:
 

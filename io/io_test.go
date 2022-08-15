@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
 	"github.com/stretchr/testify/assert"
 )
@@ -65,4 +66,10 @@ func TestSequence(t *testing.T) {
 	res, err := io.UnsafeRunSync(ioseq)
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, res)
+}
+
+func TestIgnore(t *testing.T) {
+	iou := io.Ignore(io.Lift(10))
+	u, _ := io.UnsafeRunSync(iou)
+	assert.Equal(t, fun.Unit1, u)
 }
