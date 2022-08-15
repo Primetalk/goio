@@ -28,15 +28,6 @@ There are also basic data structures - Unit, Pair and Either.
 - `fun.Unit` - type that has only one instance
 - `fun.Unit1` - the instance of the Unit type
 - `fun.Pair[A any, B any]` - type that represents both A and B.
-- `fun.Either[A any, B any]` - type that represents either A or B.
-
-For `Either` there are a few helper functions:
-
-- `fun.Left[A any, B any](a A) Either[A, B]`
-- `fun.Right[A any, B any](b B) Either[A, B]`
-- `fun.IsLeft[A any, B any](eab Either[A, B]) bool`
-- `fun.IsRight[A any, B any](eab Either[A, B]) bool`
-- `fun.Fold[A any, B any, C any](eab Either[A, B], left func(A)C, right func(B)C) C` - Fold pattern matches Either with two given pattern match handlers
 
 For debug purposes it's useful to convert arbitrary data to strings.
 
@@ -64,6 +55,25 @@ A convenient data structure `Option[A]` that provides safe mechanisms to work wi
 - `option.FlatMap[A any, B any](oa Option[A], f func(A) Option[B]) Option[B]` - FlatMap converts an internal value if it is present using the provided function.
 - `option.Flatten[A any](ooa Option[Option[A]]) Option[A]` - Flatten simplifies option of option to just Option[A].
 - `option.Get[A any](oa Option[A]) A` - Get is an unsafe function that unwraps the value from the option.
+- `option.ForEach[A any](oa Option[A], f func(A))` - ForEach runs the given function on the value if it's available.
+- `option.IsDefined[A any](oa Option[A]) bool` - IsDefined checks whether the option contains a value.
+- `option.IsEmpty[A any](oa Option[A]) bool` - IsEmpty checks whether the option is empty.
+
+## Either
+
+Data structure that models sum type. It can contain either A or B.
+
+- `either.Either[A any, B any]` - type that represents either A or B.
+
+For `Either` there are a few helper functions:
+
+- `either.Left[A any, B any](a A) Either[A, B]`
+- `either.Right[A any, B any](b B) Either[A, B]`
+- `either.IsLeft[A any, B any](eab Either[A, B]) bool`
+- `either.IsRight[A any, B any](eab Either[A, B]) bool`
+- `either.Fold[A any, B any, C any](eab Either[A, B], left func(A)C, right func(B)C) C` - Fold pattern matches Either with two given pattern match handlers.
+- `either.GetLeft[A any, B any](eab Either[A, B]) option.Option[A]` - GetLeft returns left if it's defined.
+- `either.GetRight[A any, B any](eab Either[A, B]) option.Option[B]` - GetRight returns left if it's defined.
 
 ## IO
 
@@ -283,6 +293,7 @@ Typical manipulations with a stream includes `Map`, `FlatMap`, `Filter` and some
 - `stream.AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A]`
 - `stream.MapEval[A any, B any](stm Stream[A], f func(a A)io.IO[B]) Stream[B]`
 - `stream.Filter[A any](stm Stream[A], f func(A)bool) Stream[A]`
+- `stream.FilterNot[A any](stm Stream[A], f func(A)bool) Stream[A]`
 - `stream.Flatten[A any](stm Stream[Stream[A]]) Stream[A]` - Flatten simplifies a stream of streams to just the stream of values by concatenating all inner streams.
 
 Important functions that allow to implement stateful stream transformation:
@@ -302,6 +313,8 @@ After constructing the desired pipeline, the stream needs to be executed.
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
 - `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
 - `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.
+- `stream.Partition[A any, C any, D any](stm Stream[A], predicate func(A) bool, trueHandler func(Stream[A]) io.IO[C], falseHandler func(Stream[A]) io.IO[D]) io.IO[fun.Pair[C, D]]` - Partition divides the stream into two that are handled independently.
+- `stream.FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) io.IO[[]B]` - FanOut distributes the same element to all handlers.
 
 ### Channels
 
@@ -369,6 +382,7 @@ Some utilities that are convenient when working with slices.
 - `slice.FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)`
 - `slice.Filter[A any](as []A, p func(a A) bool) (res []A)`
 - `slice.FilterNot[A any](as []A, p func(a A) bool) (res []A)` - same as `Filter`, but inverses the predicate `p`.
+- `slice.Collect[A any, B any](as []A, f func(a A) option.Option[B]) (bs []B)` - Collect runs through the slice, executes the given function and only keeps good returned values.
 - `slice.Count[A any](as []A, predicate Predicate[A]) (cnt int)` - Count counts the number of elements that satisfy the given predicate.
 - `slice.Flatten[A any](ass [][]A)(aas[]A)`
 - `slice.AppendAll[A any](ass ...[]A) (aas []A)` - AppendAll concatenates all slices.
