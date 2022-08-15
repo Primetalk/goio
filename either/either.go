@@ -1,4 +1,4 @@
-package fun
+package either
 
 // Either is a simple data structure that can have either left value or right value.
 type Either[A any, B any] struct {
