@@ -42,10 +42,10 @@ func NewPool[A any](size int) io.IO[Pipe[io.IO[A], io.GoResult[A]]] {
 }
 
 // NewPoolFromExecutionContext creates an execution pool that will execute tasks concurrently.
-// After the execution context a buffer is created to allow as many as `capacity` 
+// After the execution context a buffer is created to allow as many as `capacity`
 // parallel tasks to be executed.
 // This pool won't change the order of elements.
-// NB! As work starts in parallel, in case of failure 
+// NB! As work starts in parallel, in case of failure
 // some future elements could be evaluated even after the failed element.
 // Hence we use GoResult to represent evaluation results.
 func NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io.IO[Pipe[io.IO[A], io.GoResult[A]]] {
