@@ -123,3 +123,8 @@ func (f *failedFiberImpl[A]) Join() IO[A] {
 func (f *failedFiberImpl[A]) Close() IO[fun.Unit] {
 	return Fail[fun.Unit](f.Error)
 }
+
+// JoinFiberAsGoResult joins the fiber synchronously and returns GoResult.
+func JoinFiberAsGoResult[A any](f Fiber[A]) GoResult[A] {
+	return RunSync(f.Join())
+}
