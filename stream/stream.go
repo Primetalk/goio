@@ -106,7 +106,8 @@ func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
 
 }
 
-// FlatMap constructs a
+// FlatMap constructs a new stream by concatenating all substreams, produced by f
+// from elements of the original stream.
 func FlatMap[A any, B any](stm Stream[A], f func(a A) Stream[B]) Stream[B] {
 	return Stream[B](io.FlatMap(
 		io.IO[StepResult[A]](stm),
@@ -121,6 +122,44 @@ func FlatMap[A any, B any](stm Stream[A], f func(a A) Stream[B]) Stream[B] {
 				return io.Lift(NewStepResultEmpty(FlatMap(sra.Continuation, f)))
 			}
 		}))
+}
+
+// FoldToGoResult converts a stream into a stream of go results.
+// All go results will be non-error except probably the last one.
+func FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]] {
+	return Stream[io.GoResult[A]](
+		io.Map(io.FoldToGoResult(io.IO[StepResult[A]](stm)), func(gra io.GoResult[StepResult[A]]) StepResult[io.GoResult[A]] {
+			if gra.Error == nil {
+				sra := gra.Value
+				if sra.IsFinished {
+					return NewStepResultFinished[io.GoResult[A]]()
+				} else if sra.HasValue {
+					return NewStepResult(io.NewGoResult(sra.Value), FoldToGoResult(gra.Value.Continuation))
+				} else {
+					return NewStepResultEmpty(FoldToGoResult(sra.Continuation))
+				}
+			} else {
+				return NewStepResult(io.NewFailedGoResult[A](gra.Error), Empty[io.GoResult[A]]())
+			}
+		}),
+	)
+}
+
+// UnfoldGoResult converts a stream of GoResults back to normal stream.
+// On the first encounter of Error, the stream fails.
+// default value for `onFailure`  - `Fail[A]`.
+func UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A] {
+	return Stream[A](
+		FlatMap(stm,
+			func(gra io.GoResult[A]) Stream[A] {
+				if gra.Error == nil {
+					return Lift(gra.Value)
+				} else {
+					return onFailure(gra.Error)
+				}
+			},
+		),
+	)
 }
 
 // FlatMapPipe creates a pipe that flatmaps one stream through the provided function.
@@ -317,19 +356,21 @@ func GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Str
 }
 
 // FanOut distributes the same element to all handlers.
+// Stream failure is also distribured to all handlers.
 func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) io.IO[[]B] {
-	var channels []chan A
+	gra := FoldToGoResult(stm)
+	var channels []chan io.GoResult[A]
 	// NB: sideeffectful mapping:
 	ios := slice.Map(handlers, func(handler func(Stream[A]) io.IO[B]) io.IO[B] {
-		ch := make(chan A)
+		ch := make(chan io.GoResult[A])
 		channels = append(channels, ch)
-		stmCh := FromChannel(ch)
+		stmCh := UnfoldGoResult(FromChannel(ch), Fail[A])
 		return handler(stmCh)
 	})
-	channelsIn := slice.Map(channels, func(ch chan A) chan<- A {
+	channelsIn := slice.Map(channels, func(ch chan io.GoResult[A]) chan<- io.GoResult[A] {
 		return ch
 	})
-	toChannelsIO := ToChannels(stm, channelsIn...)
+	toChannelsIO := ToChannels(gra, channelsIn...)
 	toChannelsIOCompatible := io.Map(toChannelsIO, either.Left[fun.Unit, []B])
 	iosParallelIO := io.Parallel(ios...)
 	iosParallelIOCompatible := io.Map(iosParallelIO, either.Right[fun.Unit, []B])

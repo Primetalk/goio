@@ -1,7 +1,5 @@
 package io
 
-import "github.com/primetalk/goio/fun"
-
 // GoResult[A] is a data structure that represents the Go-style result of a function that
 // could fail.
 type GoResult[A any] struct {
@@ -9,7 +7,16 @@ type GoResult[A any] struct {
 	Error error
 }
 
-func (e GoResult[A]) unsafeRun() (res A, err error) {
-	defer fun.RecoverToErrorVar("GoResult.unsafeRun", &err)
-	return e.Value, e.Error
+// NewGoResult constructs a GoResult.
+func NewGoResult[A any](value A) GoResult[A] {
+	return GoResult[A]{
+		Value: value,
+	}
+}
+
+// NewFailedGoResult constructs a GoResult with an error.
+func NewFailedGoResult[A any](err error) GoResult[A] {
+	return GoResult[A]{
+		Error: err,
+	}
 }

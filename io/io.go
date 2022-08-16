@@ -88,26 +88,22 @@ func FromConstantGoResult[A any](gr GoResult[A]) IO[A] {
 // MapErr maps the result of IO[A] using a function that might fail.
 func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 	return func() ResultOrContinuation[B] {
-		rA := ioA()
-		if rA.Continuation == nil {
-			if rA.Error == nil {
-				cont := Continuation[B](func() ResultOrContinuation[B] {
-					b, err := f(rA.Value)
-					return ResultOrContinuation[B]{
-						Value: b,
-						Error: err,
-					}
-				})
+		a, err := ObtainResult(Continuation[A](ioA))
+		if err == nil {
+			cont := Continuation[B](func() ResultOrContinuation[B] {
+				b, err := f(a)
 				return ResultOrContinuation[B]{
-					Continuation: &cont,
+					Value: b,
+					Error: err,
 				}
-			} else {
-				return ResultOrContinuation[B]{
-					Error: rA.Error,
-				}
+			})
+			return ResultOrContinuation[B]{
+				Continuation: &cont,
 			}
 		} else {
-			return MapErr(IO[A](*rA.Continuation), f)()
+			return ResultOrContinuation[B]{
+				Error: err,
+			}
 		}
 	}
 }
@@ -121,23 +117,19 @@ func Map[A any, B any](ioA IO[A], f func(a A) B) IO[B] {
 // It'll fail if any of IO[A] or IO[B] fail.
 func FlatMap[A any, B any](ioA IO[A], f func(a A) IO[B]) IO[B] {
 	return func() ResultOrContinuation[B] {
-		rA := ioA()
-		if rA.Continuation == nil {
-			if rA.Error == nil {
-				cont := Continuation[B](func() ResultOrContinuation[B] {
-					ioB := f(rA.Value)
-					return ioB()
-				})
-				return ResultOrContinuation[B]{
-					Continuation: &cont,
-				}
-			} else {
-				return ResultOrContinuation[B]{
-					Error: rA.Error,
-				}
+		a, err := ObtainResult(Continuation[A](ioA))
+		if err == nil {
+			cont := Continuation[B](func() ResultOrContinuation[B] {
+				ioB := f(a)
+				return ioB()
+			})
+			return ResultOrContinuation[B]{
+				Continuation: &cont,
 			}
 		} else {
-			return FlatMap(IO[A](*rA.Continuation), f)()
+			return ResultOrContinuation[B]{
+				Error: err,
+			}
 		}
 	}
 }
