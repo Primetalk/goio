@@ -1,6 +1,9 @@
 package stream
 
-import "github.com/primetalk/goio/fun"
+import (
+	"github.com/primetalk/goio/fun"
+	"github.com/primetalk/goio/io"
+)
 
 // Pipe is a conversion of one stream to another.
 // Technically it's a function that takes one stream and returns another.
@@ -13,6 +16,14 @@ type Sink[A any] Pipe[A, fun.Unit]
 // Technically it applies the pipe function to this stream.
 func Through[A any, B any](stm Stream[A], pipe Pipe[A, B]) Stream[B] {
 	return pipe(stm)
+}
+
+// ThroughPipeEval runs the given stream through pipe that is returned by
+// the provided pipeIO.
+func ThroughPipeEval[A any, B any](stm Stream[A], pipeIO io.IO[Pipe[A, B]]) Stream[B] {
+	return FlatMap(Eval(pipeIO), func(pipe Pipe[A, B]) Stream[B] {
+		return pipe(stm)
+	})
 }
 
 // NewSink constructs the sink from the provided function.
