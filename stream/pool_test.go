@@ -26,7 +26,7 @@ func TestPool(t *testing.T) {
 	sleepResults := stream.ThroughPipeEval(sleepTasks100, poolIO)
 	resultStream := stream.MapEval(sleepResults, io.FromConstantGoResult[int])
 	resultsIO := stream.ToSlice(resultStream)
-	
+
 	start := time.Now()
 	results, err := io.UnsafeRunSync(resultsIO)
 	assert.NoError(t, err)

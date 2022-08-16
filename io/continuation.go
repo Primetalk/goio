@@ -3,6 +3,8 @@ package io
 import (
 	"errors"
 	"fmt"
+
+	"github.com/primetalk/goio/fun"
 )
 
 // Continuation represents some multistep computation.
@@ -21,6 +23,7 @@ var MaxContinuationDepth = 1000000000000
 
 // ObtainResult executes continuation until final result is obtained.
 func ObtainResult[A any](c Continuation[A]) (res A, err error) {
+	defer fun.RecoverToErrorVar("ObtainResult", &err)
 	if c == nil {
 		err = errors.New("nil continuation is being enforced")
 	} else {
