@@ -147,6 +147,7 @@ func FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]] {
 
 // UnfoldGoResult converts a stream of GoResults back to normal stream.
 // On the first encounter of Error, the stream fails.
+// default value for `onFailure`  - `Fail[A]`.
 func UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A] {
 	return Stream[A](
 		FlatMap(stm,
