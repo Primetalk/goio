@@ -162,16 +162,20 @@ func Fail[A any](err error) IO[A] {
 func Fold[A any, B any](ioA IO[A], f func(a A) IO[B], recover func(error) IO[B]) IO[B] {
 	return func() ResultOrContinuation[B] {
 		a, err := ObtainResult(Continuation[A](ioA))
+		var cont Continuation[B]
 		if err == nil {
-			cont := Continuation[B](func() ResultOrContinuation[B] {
+			cont = Continuation[B](func() ResultOrContinuation[B] {
 				ioB := f(a)
 				return ioB()
 			})
-			return ResultOrContinuation[B]{
-				Continuation: &cont,
-			}
 		} else {
-			return recover(err)()
+			cont = Continuation[B](func() ResultOrContinuation[B] {
+				ioB := recover(err)
+				return ioB()
+			})
+		}
+		return ResultOrContinuation[B]{
+			Continuation: &cont,
 		}
 	}
 }
