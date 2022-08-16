@@ -303,6 +303,11 @@ Important functions that allow to implement stateful stream transformation:
 - `stream.GroupBy[A any, K comparable](stm Stream[A], key func(A) K) Stream[fun.Pair[K, []A]]` - GroupBy collects group by a user-provided key. Whenever a new key is encountered, the previous group is emitted. When the original stream finishes, the last group is emitted.
 - `stream.GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Stream[fun.Pair[K, []A]]` - GroupByEval collects group by a user-provided key (which is evaluated as IO). Whenever a new key is encountered, the previous group is emitted. When the original stream finishes, the last group is emitted.
 
+Functions to explicitly deal with failures:
+
+- `stream.FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]]` - FoldToGoResult converts a stream into a stream of go results. All go results will be non-error except probably the last one.
+- `stream.UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A]` - UnfoldGoResult converts a stream of GoResults back to normal stream. On the first encounter of Error, the stream fails.
+
 ### Execution
 
 After constructing the desired pipeline, the stream needs to be executed.
@@ -325,6 +330,7 @@ Provides a few utilities for working with channels:
 - `stream.FromChannel[A any](ch chan A) Stream[A]` - constructs a stream that reads from the given channel until the channel is open.
 - `stream.PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B]` - PairOfChannelsToPipe - takes two channels that are being used to talk to some external process and convert them into a single pipe. It first starts a separate go routine that will continously run the input stream and send all it's contents to the `input` channel. The current thread is left with reading from the output channel.
 - `stream.PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, chan B]]` - PipeToPairOfChannels converts a streaming pipe to a pair of channels that could be used to interact with external systems.
+- `stream.BufferPipe[A any](size int) Pipe[A, A]` - BufferPipe puts incoming values into a channel and reads them from it. This allows to decouple producer and consumer.
 
 ### Pipes and sinks
 
@@ -334,6 +340,8 @@ Sink is a Pipe that returns a stream of units. That stream could be drained afte
 
 - `stream.NewSink[A any](f func(a A)) Sink[A]`
 - `stream.Through[A any, B any](stm Stream[A], pipe Pipe[A, B]) Stream[B]`
+- `stream.ThroughPipeEval[A any, B any](stm Stream[A], pipeIO io.IO[Pipe[A, B]]) Stream[B]` - ThroughPipeEval runs the given stream through pipe that is returned by the provided pipeIO.
+
 - `stream.ToSink[A any](stm Stream[A], sink Sink[A]) Stream[fun.Unit]`
 
 ### Length manipulation
@@ -358,9 +366,10 @@ when we have a lot of incoming requests that we wish to execute with a certain c
 (to not exceed a receiver capacity).
 In this case we can represent the tasks as ordinary `IO` and have a stream of tasks `Stream[IO[A]]`. The evaluation results could be represented as `GoResult[A]`.
 We may wish to execute these tasks using a pool of workers of a given size.
+Pool is a pipe that takes some computations and return their results (possibly failures): `Pipe[io.IO[A], io.GoResult[A]]`.
 
-- `stream.NewPool[A any](size int) io.IO[Pool[A]]` - NewPool creates an execution pool that will execute tasks concurrently. Simultaneously there could be as many as size executions.
-- `stream.ThroughPool[A any](sa Stream[io.IO[A]], pool Pool[A]) Stream[io.GoResult[A]]` - ThroughPool runs a stream of tasks through the pool.
+- `stream.NewPool[A any](size int) io.IO[Pipe[io.IO[A], io.GoResult[A]]]` - NewPool creates an execution pool that will execute tasks concurrently. Simultaneously there could be as many as size executions.
+- `stream.ThroughPool[A any](sa Stream[io.IO[A]], pool Pipe[io.IO[A], io.GoResult[A]]) Stream[io.GoResult[A]]` - ThroughPool runs a stream of tasks through the pool.
 - `stream.NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io.IO[Pool[A]]` - NewPoolFromExecutionContext creates an execution pool that will execute tasks concurrently.
 - `stream.ThroughExecutionContext[A any](sa Stream[io.IO[A]], ec io.ExecutionContext, capacity int) Stream[io.GoResult[A]]` - ThroughExecutionContext runs a stream of tasks through an ExecutionContext.
 
