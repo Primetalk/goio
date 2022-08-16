@@ -25,6 +25,7 @@ func ToChannel[A any](stm Stream[A], ch chan<- A) io.IO[fun.Unit] {
 
 // ToChannels sends each stream element to every given channel.
 // Failure or completion of the stream leads to closure of all channels.
+// TODO: Send failure to the channels.
 func ToChannels[A any](stm Stream[A], channels ...chan<- A) io.IO[fun.Unit] {
 	stmUnits := MapEval(stm,
 		func(a A) io.IO[fun.Unit] {
@@ -89,4 +90,19 @@ func PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan<- A
 			io.Lift(fun.Pair[chan<- A, <-chan B]{V1: input, V2: output}),
 		)
 	})
+}
+
+// BufferPipe puts incoming values into a pipe and
+func BufferPipe[A any](size int) Pipe[A, A] {
+	return func(sa Stream[A]) Stream[A] {
+		sa1 := Map(sa, func(a A) A {
+			return a
+		})
+		sgra := FoldToGoResult(sa1)
+		ch := make(chan io.GoResult[A], size)
+		pipe := PairOfChannelsToPipe(ch, ch)
+		sgra2 := pipe(sgra)
+		sa2 := UnfoldGoResult(sgra2, Fail[A])
+		return sa2
+	}
 }
