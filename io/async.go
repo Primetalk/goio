@@ -13,6 +13,7 @@ func Async[A any](k func(Callback[A])) IO[A] {
 				Value: a,
 				Error: err,
 			}
+			close(ch)
 		}
 		k(cb)
 		res := <-ch
