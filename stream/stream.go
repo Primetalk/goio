@@ -380,3 +380,28 @@ func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) i
 	})
 	return onlyRight
 }
+
+// FoldLeftEval aggregates stream in a more simple way than StateFlatMap.
+func FoldLeftEval[A any, B any](stm Stream[A], zero B, combine func(B, A) io.IO[B]) io.IO[B] {
+	return Head(
+		StateFlatMapWithFinish(stm, zero,
+			func(a A, b B) io.IO[fun.Pair[B, Stream[B]]] {
+				return io.Map(combine(b, a), func(b B) fun.Pair[B, Stream[B]] {
+					return fun.NewPair(b, Empty[B]())
+				})
+			},
+			func(b B) Stream[B] {
+				return Lift(b)
+			},
+		),
+	)
+}
+
+// FoldLeft aggregates stream in a more simple way than StateFlatMap.
+func FoldLeft[A any, B any](stm Stream[A], zero B, combine func(B, A) B) io.IO[B] {
+	return FoldLeftEval(stm, zero, func(b B, a A) io.IO[B] {
+		return io.Pure(func() B {
+			return combine(b, a)
+		})
+	})
+}
