@@ -133,3 +133,42 @@ func TestFailedStream(t *testing.T) {
 		assert.Equal(t, expectedError, err1)
 	}
 }
+
+// TODO: support FanOut when one of the sibling streams terminate early (Head).
+func NoTestFanOutSiblingPreliminaryTermination(t *testing.T) {
+	expectedError := errors.New("expected error 2")
+
+	twoStmIO := stream.FanOut(
+		nats10,
+		func(stm stream.Stream[int]) io.IO[int] {
+			return stream.Head(stream.Sum(stm))
+		},
+		func(stm stream.Stream[int]) io.IO[int] {
+			return stream.Head(stm)
+		},
+	)
+	_, err1 := io.UnsafeRunSync(twoStmIO)
+	if assert.Error(t, err1) {
+		assert.Equal(t, expectedError, err1)
+	}
+
+}
+
+func TestFanOutSiblingFailure(t *testing.T) {
+	expectedError := errors.New("expected error 3")
+
+	twoStmIO := stream.FanOut(
+		nats10,
+		func(stm stream.Stream[int]) io.IO[int] {
+			return stream.Head(stream.Sum(stm))
+		},
+		func(stm stream.Stream[int]) io.IO[int] {
+			return stream.Head(stream.Fail[int](expectedError))
+		},
+	)
+	_, err1 := io.UnsafeRunSync(twoStmIO)
+	if assert.Error(t, err1) {
+		assert.Contains(t, err1.Error(), "send on closed channel")
+	}
+
+}

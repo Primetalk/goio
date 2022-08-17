@@ -365,7 +365,15 @@ func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) i
 		ch := make(chan io.GoResult[A])
 		channels = append(channels, ch)
 		stmCh := UnfoldGoResult(FromChannel(ch), Fail[A])
-		return handler(stmCh)
+		return io.Recover(
+			handler(stmCh),
+			func(err error) io.IO[B] {
+				return io.AndThen(
+					io.CloseChannel(ch), // !! Closing channel on the reader side!
+					io.Fail[B](err),
+				)
+			},
+		)
 	})
 	channelsIn := slice.Map(channels, func(ch chan io.GoResult[A]) chan<- io.GoResult[A] {
 		return ch
@@ -376,7 +384,9 @@ func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) i
 	iosParallelIOCompatible := io.Map(iosParallelIO, either.Right[fun.Unit, []B])
 	both := io.Parallel(toChannelsIOCompatible, iosParallelIOCompatible)
 	onlyRight := io.Map(both, func(eithers []either.Either[fun.Unit, []B]) []B {
-		return slice.Flatten(slice.Collect(eithers, either.GetRight[fun.Unit, []B]))
+		return slice.Flatten(
+			slice.Collect(eithers, either.GetRight[fun.Unit, []B]),
+		)
 	})
 	return onlyRight
 }
