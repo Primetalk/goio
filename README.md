@@ -438,3 +438,10 @@ type Number interface {
 Having this definition we now can aggregate slices of numbers:
  
 - `slice.Sum[N Number](ns []N) (sum N)` - sums numbers.
+
+## Maps utilities
+
+Some helper functions to deal with `map[K]V`.
+
+- `maps.Keys[K comparable, V any](m map[K]V) (keys []K)` - Keys returns keys of the map
+- `maps.Merge[K comparable, V any](m1 map[K]V, m2 map[K]V, combine func(V, V) V) (m map[K]V)` - Merge combines two maps. Function `combine` is invoked when the same key is available in both maps.
