@@ -18,13 +18,14 @@ func CreateSleeps(count int) (ios []io.IO[int]) {
 }
 
 func TestParallel(t *testing.T) {
-	start := time.Now()
 	ioall := io.Parallel(CreateSleeps(100)...)
-	results, err := io.UnsafeRunSync(ioall)
+	measured := io.MeasureDuration(ioall)
+	results, err := io.UnsafeRunSync(measured)
 	assert.Equal(t, err, nil)
-	end := time.Now()
-	assert.Equal(t, 0, results[0])
-	assert.WithinDuration(t, end, start, 200*time.Millisecond)
+	assert.Equal(t, 0, results.V1[0])
+	duration := results.V2
+	now := time.Now()
+	assert.WithinDuration(t, now.Add(duration), now, 200*time.Millisecond)
 }
 
 func TestParallelBound(t *testing.T) {
@@ -40,4 +41,31 @@ func TestParallelBound(t *testing.T) {
 	// it should take longer than 200 ms, but less than 10 seconds
 	assert.GreaterOrEqual(t, dur, 200*time.Millisecond)
 	assert.LessOrEqual(t, dur, 300*time.Millisecond)
+}
+
+func TestPairParallel(t *testing.T) {
+	ioA1 := io.PairParallel(
+		io.SleepA(100*time.Millisecond, "a"),
+		io.SleepA(100*time.Millisecond, 1),
+	)
+	measured := io.MeasureDuration(ioA1)
+	results, err := io.UnsafeRunSync(measured)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, fun.NewPair("a", 1), results.V1)
+	duration := results.V2
+	now := time.Now()
+	assert.WithinDuration(t, now.Add(duration), now, 120*time.Millisecond)
+}
+
+func TestPairSequentially(t *testing.T) {
+	ioA1 := io.PairSequentially(
+		io.SleepA(100*time.Millisecond, "a"),
+		io.SleepA(100*time.Millisecond, 1),
+	)
+	measured := io.MeasureDuration(ioA1)
+	results, err := io.UnsafeRunSync(measured)
+	assert.Equal(t, err, nil)
+	assert.Equal(t, fun.NewPair("a", 1), results.V1)
+	duration := results.V2
+	assert.GreaterOrEqual(t, duration, 200*time.Millisecond)
 }

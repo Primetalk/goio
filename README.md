@@ -245,6 +245,9 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 - `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results.
 - `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` -  ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
 - `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
+- `io.PairSequentially[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairSequentially runs two IOs sequentially and returns both results.
+- `io.PairParallel[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairParallel runs two IOs in parallel and returns both results.
+- `io.MeasureDuration[A any](ioa IO[A]) IO[fun.Pair[A, time.Duration]]` - MeasureDuration captures the wall time that was needed to evaluate the given IO.
 
 ### Working with time
 
