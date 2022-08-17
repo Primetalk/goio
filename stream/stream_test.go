@@ -133,3 +133,14 @@ func TestFailedStream(t *testing.T) {
 		assert.Equal(t, expectedError, err1)
 	}
 }
+
+func plus(b int, a int) int {
+	return a + b
+}
+
+func TestFoldLeftEval(t *testing.T) {
+	sumIO := stream.FoldLeft(nats10, 0, plus)
+	sum, err1 := io.UnsafeRunSync(sumIO)
+	assert.NoError(t, err1)
+	assert.Equal(t, 55, sum)
+}
