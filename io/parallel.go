@@ -2,7 +2,9 @@ package io
 
 import (
 	"log"
+	"time"
 
+	"github.com/primetalk/goio/either"
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/slice"
 )
@@ -46,4 +48,43 @@ func ConcurrentlyFirst[A any](ios []IO[A]) IO[A] {
 			readFirstFromChannel)
 		return UnfoldGoResult(ignoreParallelResultsAndThenReadFirstFromChannel)
 	})
+}
+
+// PairSequentially runs two IOs sequentially and returns both results.
+func PairSequentially[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]] {
+	return FlatMap(ioa, func(a A) IO[fun.Pair[A, B]] {
+		return Map(iob, func(b B) fun.Pair[A, B] {
+			return fun.NewPair(a, b)
+		})
+	})
+}
+
+// PairParallel runs two IOs in parallel and returns both results.
+func PairParallel[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]] {
+	return Map(
+		Parallel(
+			Map(ioa, either.Left[A, B]),
+			Map(iob, either.Right[A, B]),
+		),
+		func(es []either.Either[A, B]) fun.Pair[A, B] {
+			if es[0].IsLeft {
+				return fun.NewPair(es[0].Left, es[1].Right)
+			} else {
+				return fun.NewPair(es[1].Left, es[0].Right)
+			}
+		},
+	)
+}
+
+// MeasureDuration captures the wall time that was needed to evaluate the given IO.
+func MeasureDuration[A any](ioa IO[A]) IO[fun.Pair[A, time.Duration]] {
+	return Map(
+		PairSequentially(Pure(time.Now), ioa),
+		func(p fun.Pair[time.Time, A]) fun.Pair[A, time.Duration] {
+			return fun.Pair[A, time.Duration]{
+				V1: p.V2,
+				V2: time.Since(p.V1),
+			}
+		},
+	)
 }
