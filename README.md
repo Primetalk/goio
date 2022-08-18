@@ -307,6 +307,8 @@ Important functions that allow to implement stateful stream transformation:
 - `stream.GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Stream[fun.Pair[K, []A]]` - GroupByEval collects group by a user-provided key (which is evaluated as IO). Whenever a new key is encountered, the previous group is emitted. When the original stream finishes, the last group is emitted.
 - `stream.FoldLeftEval[A any, B any](stm Stream[A], zero B, combine func(B, A) io.IO[B]) io.IO[B]` - FoldLeftEval aggregates stream in a more simple way than StateFlatMap.
 - `stream.FoldLeft[A any, B any](stm Stream[A], zero B, combine func(B, A) B) io.IO[B]` - FoldLeft aggregates stream in a more simple way than StateFlatMap.
+- `stream.ToChunks[A any](size int) func(stm Stream[A]) Stream[[]A]` - ToChunks collects incoming elements in chunks of the given size.
+- `stream.ChunksResize[A any](newSize int) func(stm Stream[[]A]) Stream[[]A]` - ChunksResize rebuffers chunks to the given size.
 
 Functions to explicitly deal with failures:
 
