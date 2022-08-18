@@ -348,8 +348,8 @@ Sink is a Pipe that returns a stream of units. That stream could be drained afte
 - `stream.NewSink[A any](f func(a A)) Sink[A]`
 - `stream.Through[A any, B any](stm Stream[A], pipe Pipe[A, B]) Stream[B]`
 - `stream.ThroughPipeEval[A any, B any](stm Stream[A], pipeIO io.IO[Pipe[A, B]]) Stream[B]` - ThroughPipeEval runs the given stream through pipe that is returned by the provided pipeIO.
-
 - `stream.ToSink[A any](stm Stream[A], sink Sink[A]) Stream[fun.Unit]`
+- `stream.ConcatPipes[A any, B any, C any](pipe1 Pipe[A, B], pipe2 Pipe[B, C]) Pipe[A, C]` - ConcatPipes connects two pipes into one.
 
 ### Length manipulation
 

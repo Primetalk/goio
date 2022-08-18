@@ -40,3 +40,10 @@ func NewSink[A any](f func(a A)) Sink[A] {
 func ToSink[A any](stm Stream[A], sink Sink[A]) Stream[fun.Unit] {
 	return sink(stm)
 }
+
+// ConcatPipes connects two pipes into one.
+func ConcatPipes[A any, B any, C any](pipe1 Pipe[A, B], pipe2 Pipe[B, C]) Pipe[A, C] {
+	return func(sa Stream[A]) Stream[C] {
+		return pipe2(pipe1(sa))
+	}
+}
