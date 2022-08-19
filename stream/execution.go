@@ -8,6 +8,9 @@ import (
 	"github.com/primetalk/goio/io"
 )
 
+// Collector reads the stream and produces some value.
+type Collector[A any, B any] func(Stream[A]) io.IO[B]
+
 // Collect collects all element from the stream and for each element invokes
 // the provided function
 func Collect[A any](stm Stream[A], collector func(A) error) io.IO[fun.Unit] {
@@ -87,8 +90,8 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 // Partition divides the stream into two that are handled independently.
 func Partition[A any, C any, D any](stm Stream[A],
 	predicate func(A) bool,
-	trueHandler func(Stream[A]) io.IO[C],
-	falseHandler func(Stream[A]) io.IO[D],
+	trueHandler Collector[A, C],
+	falseHandler Collector[A, D],
 ) io.IO[fun.Pair[C, D]] {
 	eithersIO := FanOut(stm,
 		func(stm Stream[A]) io.IO[either.Either[C, D]] {
