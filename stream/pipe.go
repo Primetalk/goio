@@ -47,3 +47,8 @@ func ConcatPipes[A any, B any, C any](pipe1 Pipe[A, B], pipe2 Pipe[B, C]) Pipe[A
 		return pipe2(pipe1(sa))
 	}
 }
+
+// PrependPipeToSink changes the input of a sink.
+func PrependPipeToSink[A any, B any](pipe1 Pipe[A, B], sink Sink[B]) Sink[A] {
+	return Sink[A](ConcatPipes(pipe1, Pipe[B, fun.Unit](sink)))
+}

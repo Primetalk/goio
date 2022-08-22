@@ -151,6 +151,14 @@ To and from `GoResult` - allows to handle both good value and an error:
 - `io.FoldToGoResult[A any](io IO[A]) IO[GoResult[A]]` - FoldToGoResult converts either value or error to go result. It should never fail.
 - `io.UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A]` - UnfoldGoResult represents GoResult back to ordinary IO.
 
+Sometimes there is a need to perform some sideeffectful operation on a value. This can be achieved with `Consumer[A]`.
+```go
+// Consumer can receive an instance of A and perform some operation on it.
+type Consumer[A any] func(A) IOUnit
+```
+
+- `io.CoMap[A any, B any](ca Consumer[A], f func(b B) A) Consumer[B]` - CoMap changes the input argument of the consumer.
+
 ### Execution
 
 To finally run all constructed computations one may use `UnsafeRunSync` or `ForEach`:
@@ -366,6 +374,7 @@ Sink is a Pipe that returns a stream of units. That stream could be drained afte
 - `stream.ThroughPipeEval[A any, B any](stm Stream[A], pipeIO io.IO[Pipe[A, B]]) Stream[B]` - ThroughPipeEval runs the given stream through pipe that is returned by the provided pipeIO.
 - `stream.ToSink[A any](stm Stream[A], sink Sink[A]) Stream[fun.Unit]`
 - `stream.ConcatPipes[A any, B any, C any](pipe1 Pipe[A, B], pipe2 Pipe[B, C]) Pipe[A, C]` - ConcatPipes connects two pipes into one.
+- `stream.PrependPipeToSink[A any, B any](pipe1 Pipe[A, B], sink Sink[B]) Sink[A]` - PrependPipeToSink changes the input of a sink.
 
 ### Length manipulation
 
