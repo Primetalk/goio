@@ -28,6 +28,8 @@ There are also basic data structures - Unit, Pair and Either.
 - `fun.Unit` - type that has only one instance
 - `fun.Unit1` - the instance of the Unit type
 - `fun.Pair[A any, B any]` - type that represents both A and B.
+- `fun.PairV1[A any, B any](p Pair[A, B]) A` - PairV1 returns the first element of the pair.
+- `fun.PairV2[A any, B any](p Pair[A, B]) B` - PairV2 returns the second element of the pair.
 
 For debug purposes it's useful to convert arbitrary data to strings.
 
