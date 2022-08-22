@@ -88,23 +88,25 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 	})
 }
 
-// Last keeps track of the current element of the stream and returns it when the stream completes.
+// Last keeps track of the current element of the stream
+// and returns it when the stream completes.
 func Last[A any](stm Stream[A]) io.IO[A] {
-	return Head(
-		StateFlatMapWithFinish(
-			stm, option.None[A](),
-			func(a A, st option.Option[A]) io.IO[fun.Pair[option.Option[A], Stream[A]]] {
-				return io.Lift(fun.NewPair(option.Some(a), Empty[A]()))
-			},
-			func(st option.Option[A]) Stream[A] {
-				return option.Fold(st,
-					Lift[A],
-					func() Stream[A] {
-						return Fail[A](fmt.Errorf("last of an empty stream"))
-					},
-				)
-			},
-		),
+	optA := FoldLeft(
+		stm, option.None[A](),
+		func(st option.Option[A], a A) option.Option[A] {
+			return option.Some(a) // ignore the previous last value
+		},
+	)
+	return io.FlatMap(
+		optA,
+		func(st option.Option[A]) io.IO[A] {
+			return option.Fold(st,
+				io.Lift[A],
+				func() io.IO[A] {
+					return io.Fail[A](fmt.Errorf("last of an empty stream"))
+				},
+			)
+		},
 	)
 }
 
