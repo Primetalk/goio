@@ -6,6 +6,7 @@ import (
 	"github.com/primetalk/goio/either"
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/io"
+	"github.com/primetalk/goio/option"
 )
 
 // Collector reads the stream and produces some value.
@@ -85,6 +86,26 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 		}
 		return
 	})
+}
+
+// Last keeps track of the current element of the stream and returns it when the stream completes.
+func Last[A any](stm Stream[A]) io.IO[A] {
+	return Head(
+		StateFlatMapWithFinish(
+			stm, option.None[A](),
+			func(a A, st option.Option[A]) io.IO[fun.Pair[option.Option[A], Stream[A]]] {
+				return io.Lift(fun.NewPair(option.Some(a), Empty[A]()))
+			},
+			func(st option.Option[A]) Stream[A] {
+				return option.Fold(st,
+					Lift[A],
+					func() Stream[A] {
+						return Fail[A](fmt.Errorf("last of an empty stream"))
+					},
+				)
+			},
+		),
+	)
 }
 
 // Partition divides the stream into two that are handled independently.

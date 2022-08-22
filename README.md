@@ -326,6 +326,7 @@ After constructing the desired pipeline, the stream needs to be executed.
 - `stream.AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A]`
 - `stream.ToSlice[A any](stm Stream[A]) io.IO[[]A]`
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
+- `stream.Last[A any](stm Stream[A]) io.IO[A]` - Last keeps track of the current element of the stream and returns it when the stream completes.
 - `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
 - `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.
 - `stream.Partition[A any, C any, D any](stm Stream[A], predicate func(A) bool, trueHandler func(Stream[A]) io.IO[C], falseHandler func(Stream[A]) io.IO[D]) io.IO[fun.Pair[C, D]]` - Partition divides the stream into two that are handled independently.

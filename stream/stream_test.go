@@ -34,6 +34,10 @@ func TestGenerate(t *testing.T) {
 	res, err = io.UnsafeRunSync(stream.Head(powers2_10))
 	assert.NoError(t, err)
 	assert.Equal(t, 1024, res)
+
+	res, err = io.UnsafeRunSync(stream.Last(stream.Take(powers2, 10)))
+	assert.NoError(t, err)
+	assert.Equal(t, 1024, res)
 }
 
 func TestDrainAll(t *testing.T) {
