@@ -151,6 +151,14 @@ To and from `GoResult` - allows to handle both good value and an error:
 - `io.FoldToGoResult[A any](io IO[A]) IO[GoResult[A]]` - FoldToGoResult converts either value or error to go result. It should never fail.
 - `io.UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A]` - UnfoldGoResult represents GoResult back to ordinary IO.
 
+Sometimes there is a need to perform some sideeffectful operation on a value. This can be achieved with `Consumer[A]`.
+```go
+// Consumer can receive an instance of A and perform some operation on it.
+type Consumer[A any] func(A) IOUnit
+```
+
+- `io.CoMap[A any, B any](ca Consumer[A], f func(b B) A) Consumer[B]` - CoMap changes the input argument of the consumer.
+
 ### Execution
 
 To finally run all constructed computations one may use `UnsafeRunSync` or `ForEach`:
