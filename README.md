@@ -318,6 +318,18 @@ Functions to explicitly deal with failures:
 - `stream.FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]]` - FoldToGoResult converts a stream into a stream of go results. All go results will be non-error except probably the last one.
 - `stream.UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A]` - UnfoldGoResult converts a stream of GoResults back to normal stream. On the first encounter of Error, the stream fails.
 
+Functions to explicitly deal with failures and stream completion:
+
+```go
+// Fields should be checked in order - If Error == nil, If !IsFinished, then Value
+type StreamEvent[A any] struct {
+	Error      error
+	IsFinished bool // true when stream has completed
+	Value      A
+}
+```
+- `stream.ToStreamEvent[A any](stm Stream[A]) Stream[StreamEvent[A]]` - ToStreamEvent converts the given stream to a stream of StreamEvents. Each normal element will become a StreamEvent with data. On a failure or finish a single element is returned before the end of the stream.
+
 ### Execution
 
 After constructing the desired pipeline, the stream needs to be executed.
