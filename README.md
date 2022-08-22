@@ -28,6 +28,8 @@ There are also basic data structures - Unit, Pair and Either.
 - `fun.Unit` - type that has only one instance
 - `fun.Unit1` - the instance of the Unit type
 - `fun.Pair[A any, B any]` - type that represents both A and B.
+- `fun.PairV1[A any, B any](p Pair[A, B]) A` - PairV1 returns the first element of the pair.
+- `fun.PairV2[A any, B any](p Pair[A, B]) B` - PairV2 returns the second element of the pair.
 
 For debug purposes it's useful to convert arbitrary data to strings.
 
@@ -247,6 +249,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 - `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
 - `io.PairSequentially[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairSequentially runs two IOs sequentially and returns both results.
 - `io.PairParallel[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairParallel runs two IOs in parallel and returns both results.
+- `io.RunAlso[A any](ioa IO[A], other IOUnit) IO[A]` - RunAlso runs the other IO in parallel, but returns only the result of the first IO.
 - `io.MeasureDuration[A any](ioa IO[A]) IO[fun.Pair[A, time.Duration]]` - MeasureDuration captures the wall time that was needed to evaluate the given IO.
 
 ### Working with time
@@ -315,6 +318,18 @@ Functions to explicitly deal with failures:
 - `stream.FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]]` - FoldToGoResult converts a stream into a stream of go results. All go results will be non-error except probably the last one.
 - `stream.UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A]` - UnfoldGoResult converts a stream of GoResults back to normal stream. On the first encounter of Error, the stream fails.
 
+Functions to explicitly deal with failures and stream completion:
+
+```go
+// Fields should be checked in order - If Error == nil, If !IsFinished, then Value
+type StreamEvent[A any] struct {
+	Error      error
+	IsFinished bool // true when stream has completed
+	Value      A
+}
+```
+- `stream.ToStreamEvent[A any](stm Stream[A]) Stream[StreamEvent[A]]` - ToStreamEvent converts the given stream to a stream of StreamEvents. Each normal element will become a StreamEvent with data. On a failure or finish a single element is returned before the end of the stream.
+
 ### Execution
 
 After constructing the desired pipeline, the stream needs to be executed.
@@ -323,6 +338,7 @@ After constructing the desired pipeline, the stream needs to be executed.
 - `stream.AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A]`
 - `stream.ToSlice[A any](stm Stream[A]) io.IO[[]A]`
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
+- `stream.Last[A any](stm Stream[A]) io.IO[A]` - Last keeps track of the current element of the stream and returns it when the stream completes.
 - `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
 - `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.
 - `stream.Partition[A any, C any, D any](stm Stream[A], predicate func(A) bool, trueHandler func(Stream[A]) io.IO[C], falseHandler func(Stream[A]) io.IO[D]) io.IO[fun.Pair[C, D]]` - Partition divides the stream into two that are handled independently.
@@ -337,7 +353,7 @@ Provides a few utilities for working with channels:
 - `stream.FromChannel[A any](ch chan A) Stream[A]` - constructs a stream that reads from the given channel until the channel is open.
 - `stream.PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B]` - PairOfChannelsToPipe - takes two channels that are being used to talk to some external process and convert them into a single pipe. It first starts a separate go routine that will continously run the input stream and send all it's contents to the `input` channel. The current thread is left with reading from the output channel.
 - `stream.PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, chan B]]` - PipeToPairOfChannels converts a streaming pipe to a pair of channels that could be used to interact with external systems.
-- `stream.BufferPipe[A any](size int) Pipe[A, A]` - BufferPipe puts incoming values into a channel and reads them from it. This allows to decouple producer and consumer.
+- `stream.ChannelBufferPipe[A any](size int) Pipe[A, A]` - ChannelBufferPipe puts incoming values into a channel and reads them from it. This allows to decouple producer and consumer.
 
 ### Pipes and sinks
 

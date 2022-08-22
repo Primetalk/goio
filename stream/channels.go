@@ -92,8 +92,10 @@ func PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan<- A
 	})
 }
 
-// BufferPipe puts incoming values into a pipe and
-func BufferPipe[A any](size int) Pipe[A, A] {
+// ChannelBufferPipe puts incoming values into a buffer of the given size and
+// then reads from that same buffer.
+// This buffer allows to decouple producer and consumer to some extent.
+func ChannelBufferPipe[A any](size int) Pipe[A, A] {
 	return func(sa Stream[A]) Stream[A] {
 		sa1 := Map(sa, func(a A) A {
 			return a
