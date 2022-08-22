@@ -88,3 +88,8 @@ func MeasureDuration[A any](ioa IO[A]) IO[fun.Pair[A, time.Duration]] {
 		},
 	)
 }
+
+// RunAlso runs the other IO in parallel, but returns only the result of the first IO.
+func RunAlso[A any](ioa IO[A], other IOUnit) IO[A] {
+	return Map(PairParallel(ioa, other), fun.PairV1[A, fun.Unit])
+}

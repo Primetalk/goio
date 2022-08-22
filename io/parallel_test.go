@@ -43,15 +43,15 @@ func TestParallelBound(t *testing.T) {
 	assert.LessOrEqual(t, dur, 300*time.Millisecond)
 }
 
-func TestPairParallel(t *testing.T) {
-	ioA1 := io.PairParallel(
+func TestPairParallelAndRunAlso(t *testing.T) {
+	ioA := io.RunAlso(
 		io.SleepA(100*time.Millisecond, "a"),
-		io.SleepA(100*time.Millisecond, 1),
+		io.SleepA(100*time.Millisecond, fun.Unit1),
 	)
-	measured := io.MeasureDuration(ioA1)
+	measured := io.MeasureDuration(ioA)
 	results, err := io.UnsafeRunSync(measured)
 	assert.Equal(t, err, nil)
-	assert.Equal(t, fun.NewPair("a", 1), results.V1)
+	assert.Equal(t, "a", results.V1)
 	duration := results.V2
 	now := time.Now()
 	assert.WithinDuration(t, now.Add(duration), now, 120*time.Millisecond)
