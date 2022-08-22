@@ -53,7 +53,7 @@ func NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io
 		return func(sioa Stream[io.IO[A]]) Stream[io.GoResult[A]] {
 			fibers := MapEval(sioa, io.StartInExecutionContext[A](ec))
 			// return fibers
-			bufferPipe := BufferPipe[io.Fiber[A]](capacity)
+			bufferPipe := ChannelBufferPipe[io.Fiber[A]](capacity)
 			fibers2 := bufferPipe(fibers)
 			return Map(fibers2, io.JoinFiberAsGoResult[A])
 		}

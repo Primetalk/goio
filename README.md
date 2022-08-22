@@ -340,7 +340,7 @@ Provides a few utilities for working with channels:
 - `stream.FromChannel[A any](ch chan A) Stream[A]` - constructs a stream that reads from the given channel until the channel is open.
 - `stream.PairOfChannelsToPipe[A any, B any](input chan A, output chan B) Pipe[A, B]` - PairOfChannelsToPipe - takes two channels that are being used to talk to some external process and convert them into a single pipe. It first starts a separate go routine that will continously run the input stream and send all it's contents to the `input` channel. The current thread is left with reading from the output channel.
 - `stream.PipeToPairOfChannels[A any, B any](pipe Pipe[A, B]) io.IO[fun.Pair[chan A, chan B]]` - PipeToPairOfChannels converts a streaming pipe to a pair of channels that could be used to interact with external systems.
-- `stream.BufferPipe[A any](size int) Pipe[A, A]` - BufferPipe puts incoming values into a channel and reads them from it. This allows to decouple producer and consumer.
+- `stream.ChannelBufferPipe[A any](size int) Pipe[A, A]` - ChannelBufferPipe puts incoming values into a channel and reads them from it. This allows to decouple producer and consumer.
 
 ### Pipes and sinks
 
