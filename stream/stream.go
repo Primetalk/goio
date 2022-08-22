@@ -357,7 +357,7 @@ func GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Str
 
 // FanOut distributes the same element to all handlers.
 // Stream failure is also distribured to all handlers.
-func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) io.IO[[]B] {
+func FanOutOld[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) io.IO[[]B] {
 	gra := FoldToGoResult(stm)
 	var channels []chan io.GoResult[A]
 	// NB: sideeffectful mapping:
@@ -371,6 +371,28 @@ func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) i
 		return ch
 	})
 	toChannelsIO := ToChannels(gra, channelsIn...)
+	toChannelsIOCompatible := io.Map(toChannelsIO, either.Left[fun.Unit, []B])
+	iosParallelIO := io.Parallel(ios...)
+	iosParallelIOCompatible := io.Map(iosParallelIO, either.Right[fun.Unit, []B])
+	both := io.Parallel(toChannelsIOCompatible, iosParallelIOCompatible)
+	onlyRight := io.Map(both, func(eithers []either.Either[fun.Unit, []B]) []B {
+		return slice.Flatten(slice.Collect(eithers, either.GetRight[fun.Unit, []B]))
+	})
+	return onlyRight
+}
+
+// FanOut distributes the same element to all handlers.
+// Stream failure is also distribured to all handlers.
+func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) io.IO[[]B] {
+	var channels []BackpressureChannel[A]
+	// NB: sideeffectful mapping:
+	ios := slice.Map(handlers, func(handler func(Stream[A]) io.IO[B]) io.IO[B] {
+		ch := NewBackpressureChannel[A]()
+		channels = append(channels, ch)
+		loop := FromBackpressureChannel(ch, handler)
+		return loop
+	})
+	toChannelsIO := ToBackPressureChannels(stm, channels...)
 	toChannelsIOCompatible := io.Map(toChannelsIO, either.Left[fun.Unit, []B])
 	iosParallelIO := io.Parallel(ios...)
 	iosParallelIOCompatible := io.Map(iosParallelIO, either.Right[fun.Unit, []B])

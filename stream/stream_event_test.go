@@ -12,7 +12,6 @@ func TestNormalFinish(t *testing.T) {
 	assert.Equal(t, stream.StreamEvent[int]{IsFinished: true}, se)
 }
 
-
 func TestStreamEventOfFailedStream(t *testing.T) {
 	se := UnsafeIO(t, stream.Last(stream.ToStreamEvent(failedStream)))
 	assert.Equal(t, stream.StreamEvent[int]{Error: errExpected}, se)
