@@ -9,6 +9,18 @@ type StreamEvent[A any] struct {
 	Value      A
 }
 
+func NewStreamEvent[A any](value A) StreamEvent[A] {
+	return StreamEvent[A]{Value: value}
+}
+
+func NewStreamEventFinished[A any]() StreamEvent[A] {
+	return StreamEvent[A]{IsFinished: true}
+}
+
+func NewStreamEventError[A any](err error) StreamEvent[A] {
+	return StreamEvent[A]{Error: err}
+}
+
 // ToStreamEvent converts the given stream to a stream of StreamEvents.
 // Each normal element will become a StreamEvent with data.
 // On a failure or finish a single element is returned before the end of the stream.
@@ -19,16 +31,16 @@ func ToStreamEvent[A any](stm Stream[A]) Stream[StreamEvent[A]] {
 			func(sra StepResult[A]) io.IO[StepResult[StreamEvent[A]]] {
 				var res StepResult[StreamEvent[A]]
 				if sra.IsFinished {
-					res = NewStepResult(StreamEvent[A]{IsFinished: true}, Empty[StreamEvent[A]]())
+					res = NewStepResult(NewStreamEventFinished[A](), Empty[StreamEvent[A]]())
 				} else if sra.HasValue {
-					res = NewStepResult(StreamEvent[A]{Value: sra.Value}, ToStreamEvent(sra.Continuation))
+					res = NewStepResult(NewStreamEvent(sra.Value), ToStreamEvent(sra.Continuation))
 				} else {
 					res = NewStepResultEmpty(ToStreamEvent(sra.Continuation))
 				}
 				return io.Lift(res)
 			},
 			func(err error) io.IO[StepResult[StreamEvent[A]]] {
-				res := NewStepResult(StreamEvent[A]{Error: err}, Empty[StreamEvent[A]]())
+				res := NewStepResult(NewStreamEventError[A](err), Empty[StreamEvent[A]]())
 				return io.Lift(res)
 			},
 		),
