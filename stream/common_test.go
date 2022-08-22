@@ -21,7 +21,18 @@ var pipeMul2IO = stream.PipeToPairOfChannels(Mul2)
 var printInt = stream.NewSink(func(i int) { fmt.Printf("%d", i) })
 
 func UnsafeStreamToSlice[A any](t *testing.T, stm stream.Stream[A]) []A {
-	res, err1 := io.UnsafeRunSync(stream.ToSlice(stm))
+	return UnsafeIO(t, stream.ToSlice(stm))
+}
+
+func UnsafeIO[A any](t *testing.T, ioa io.IO[A]) A {
+	res, err1 := io.UnsafeRunSync(ioa)
 	assert.NoError(t, err1)
 	return res
+}
+
+func UnsafeIOExpectError[A any](t *testing.T, expected error, ioa io.IO[A]) {
+	_, err1 := io.UnsafeRunSync(ioa)
+	if assert.Error(t, err1) {
+		assert.Equal(t, expected, err1)
+	}
 }
