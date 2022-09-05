@@ -206,6 +206,41 @@ func StateFlatMapWithFinish[A any, B any, S any](stm Stream[A],
 	return Stream[B](res)
 }
 
+// StateFlatMapWithFinishAndFailureHandling maintains state along the way.
+// When the source stream finishes, it invokes onFinish with the last state.
+// If there is an error during stream evaluation, onFailure is invoked.
+// NB! onFinish is not invoked in case of failure.
+func StateFlatMapWithFinishAndFailureHandling[A any, B any, S any](stm Stream[A],
+	zero S,
+	f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]],
+	onFinish func(s S) Stream[B],
+	onFailure func(s S, err error) Stream[B]) Stream[B] {
+	res := io.FlatMap(
+		io.IO[StepResult[A]](stm),
+		func(sra StepResult[A]) (iores io.IO[StepResult[B]]) {
+			if sra.IsFinished {
+				iores = io.Lift(NewStepResultEmpty(onFinish(zero)))
+			} else if sra.HasValue {
+				iop := f(sra.Value, zero)
+				iores = io.FlatMap(iop, func(p fun.Pair[S, Stream[B]]) io.IO[StepResult[B]] {
+					st, stmb1 := p.V1, p.V2
+					stmb := AndThenLazy(stmb1, func() Stream[B] {
+						return StateFlatMapWithFinishAndFailureHandling(sra.Continuation, st, f, onFinish, onFailure)
+					})
+					return io.IO[StepResult[B]](stmb)
+				})
+			} else {
+				iores = io.Lift(NewStepResultEmpty(StateFlatMapWithFinishAndFailureHandling(sra.Continuation, zero, f, onFinish, onFailure)))
+			}
+			return
+		})
+	safeIores := io.Recover(res, func(err error) io.IO[StepResult[B]] {
+		return io.IO[StepResult[B]](onFailure(zero, err))
+	})
+
+	return Stream[B](safeIores)
+}
+
 // Filter leaves in the stream only the elements that satisfy the given predicate.
 func Filter[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 	return Stream[A](io.Map(
@@ -404,6 +439,11 @@ func FanOut[A any, B any](stm Stream[A], handlers ...func(Stream[A]) io.IO[B]) i
 }
 
 // FoldLeftEval aggregates stream in a more simple way than StateFlatMap.
+// It takes `zero` as the initial accumulator value
+// and then combines one element from the stream with the accumulator.
+// It continuous to do so until there are no more elements in the stream.
+// Finally, it yields the accumulator value.
+// (In case the stream was empty, `zero` is yielded.)
 func FoldLeftEval[A any, B any](stm Stream[A], zero B, combine func(B, A) io.IO[B]) io.IO[B] {
 	return Head(
 		StateFlatMapWithFinish(stm, zero,

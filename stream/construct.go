@@ -27,11 +27,21 @@ func Eval[A any](ioa io.IO[A]) Stream[A] {
 
 // Lift returns a stream of one value.
 func Lift[A any](a A) Stream[A] {
-	return Eval(io.Lift(a))
+	return Emit(a)
 }
 
 // LiftMany returns a stream with all the given values.
 func LiftMany[A any](as ...A) Stream[A] {
+	return EmitMany(as...)
+}
+
+// Emit returns a stream of a single element
+func Emit[A any](a A) Stream[A] {
+	return Eval(io.Lift(a))
+}
+
+// EmitMany returns a stream with all the given values.
+func EmitMany[A any](as ...A) Stream[A] {
 	return FromSlice(as)
 }
 
