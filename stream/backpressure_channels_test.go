@@ -1,7 +1,6 @@
 package stream_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/primetalk/goio/fun"
@@ -10,8 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var errExpected = errors.New("expected error")
-var failedStream = stream.Eval(io.Fail[int](errExpected))
 var fDrainAllInts = func(stm stream.Stream[int]) io.IOUnit {
 	return stream.DrainAll(stm)
 }

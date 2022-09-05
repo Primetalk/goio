@@ -1,7 +1,6 @@
 package stream_test
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/primetalk/goio/fun"
@@ -125,8 +124,7 @@ func TestGroupByEval(t *testing.T) {
 }
 
 func TestFailedStream(t *testing.T) {
-	expectedError := errors.New("expected error")
-	failedStream := stream.Eval(io.Fail[int](expectedError))
+	failedStream := stream.Eval(io.Fail[int](errExpected))
 	ch := make(chan int)
 	toChIO := stream.ToChannel(failedStream, ch)
 	fromCh := stream.FromChannel(ch)
@@ -134,7 +132,7 @@ func TestFailedStream(t *testing.T) {
 	resIO := io.AndThen(toChIO, sliceIO)
 	_, err1 := io.UnsafeRunSync(resIO)
 	if assert.Error(t, err1) {
-		assert.Equal(t, expectedError, err1)
+		assert.Equal(t, errExpected, err1)
 	}
 }
 
@@ -147,4 +145,48 @@ func TestFoldLeftEval(t *testing.T) {
 	sum, err1 := io.UnsafeRunSync(sumIO)
 	assert.NoError(t, err1)
 	assert.Equal(t, 55, sum)
+}
+
+func TestStateFlatMapWithFinishAndFailureHandling(t *testing.T) {
+	failedStream := stream.Eval(io.Fail[int](errExpected))
+	natsAndThenFail := stream.AndThen(nats10, failedStream)
+	sumStream := stream.StateFlatMapWithFinishAndFailureHandling(natsAndThenFail, 0,
+		func(i, j int) io.IO[fun.Pair[int, stream.Stream[int]]] {
+			return io.Lift(fun.NewPair(i+j, stream.Empty[int]()))
+		},
+		func(s int) stream.Stream[int] {
+			return stream.Emit(s)
+		},
+		func(s int, err error) stream.Stream[int] {
+			assert.Equal(t, errExpected, err)
+			return stream.Emit(-s)
+		},
+	)
+	sumIO := stream.Head(sumStream)
+	sum, err1 := io.UnsafeRunSync(sumIO)
+	assert.NoError(t, err1)
+	assert.Equal(t, -55, sum)
+}
+
+func TestStateFlatMapWithFinishAndFailureHandling2(t *testing.T) {
+	sumStream := stream.StateFlatMapWithFinishAndFailureHandling(nats10, 0,
+		func(i, j int) io.IO[fun.Pair[int, stream.Stream[int]]] {
+			if i == 10 {
+				return io.Fail[fun.Pair[int, stream.Stream[int]]](errExpected)
+			} else {
+				return io.Lift(fun.NewPair(i+j, stream.Empty[int]()))
+			}
+		},
+		func(s int) stream.Stream[int] {
+			return stream.Emit(s)
+		},
+		func(s int, err error) stream.Stream[int] {
+			assert.Equal(t, errExpected, err)
+			return stream.Emit(-s)
+		},
+	)
+	sumIO := stream.Head(sumStream)
+	sum, err1 := io.UnsafeRunSync(sumIO)
+	assert.NoError(t, err1)
+	assert.Equal(t, -45, sum)
 }

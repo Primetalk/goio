@@ -1,6 +1,7 @@
 package stream_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -19,6 +20,8 @@ var Mul2 = stream.MapPipe(func(i int) int { return i * 2 })
 var pipeMul2IO = stream.PipeToPairOfChannels(Mul2)
 
 var printInt = stream.NewSink(func(i int) { fmt.Printf("%d", i) })
+var errExpected = errors.New("expected error")
+var failedStream = stream.Eval(io.Fail[int](errExpected))
 
 func UnsafeStreamToSlice[A any](t *testing.T, stm stream.Stream[A]) []A {
 	return UnsafeIO(t, stream.ToSlice(stm))
