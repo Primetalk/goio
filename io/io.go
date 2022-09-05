@@ -212,6 +212,13 @@ func Recover[A any](io IO[A], recover func(err error) IO[A]) IO[A] {
 	return Fold(io, Lift[A], recover)
 }
 
+// OnError executes a side effect when there is an error.
+func OnError[A any](io IO[A], onError func(err error) IO[fun.Unit]) IO[A] {
+	return Fold(io, Lift[A], func(err error) IO[A] {
+		return AndThen(onError(err), Fail[A](err))
+	})
+}
+
 // Sequence takes a slice of IOs and returns an IO that will contain a slice of results.
 // It'll fail if any of the internal computations fail.
 func Sequence[A any](ioas []IO[A]) (res IO[[]A]) {
