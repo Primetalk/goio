@@ -130,6 +130,7 @@ To construct an IO one may use the following functions:
 - `io.Delay[A any](f func()IO[A]) IO[A]` - represents a function as a plain IO
 - `io.Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) IO[B]` - handles both happy and sad paths.
 - `io.Recover[A any](io IO[A], recover func(err error)IO[A])IO[A]` - handle only sad path and recover some errors to happy path.
+- `io.OnError[A any](io IO[A], onError func(err error) IO[fun.Unit]) IO[A]` - OnError executes a side effect when there is an error.
 
 ### Manipulation
 

@@ -38,10 +38,15 @@ func TestFinally(t *testing.T) {
 	errorMessage := "on purpose failure"
 	failure := io.Fail[string](errors.New(errorMessage))
 	finalizerExecuted := false
+	onErrorExecuted := false
 	fin := io.Finally(failure, io.FromPureEffect(func() { finalizerExecuted = true }))
-	_, err := io.UnsafeRunSync(fin)
+	oe := io.OnError(fin, func(err error) io.IO[fun.Unit] {
+		return io.FromPureEffect(func() { onErrorExecuted = true })
+	})
+	_, err := io.UnsafeRunSync(oe)
 	assert.Error(t, err, errorMessage)
 	assert.True(t, finalizerExecuted)
+	assert.True(t, onErrorExecuted)
 }
 
 func Nats(count int) (ios []io.IO[int]) {
