@@ -1,7 +1,6 @@
 package io
 
 import (
-	"log"
 	"time"
 
 	"github.com/primetalk/goio/either"
@@ -16,7 +15,6 @@ func ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO
 		fibersIO := Sequence(ioFibers)
 		return FlatMap(fibersIO, func(fibers []Fiber[A]) IO[[]A] {
 			joins := slice.Map(fibers, func(fiber Fiber[A]) IO[A] { return fiber.Join() })
-			log.Printf("len joins %d\n", len(joins))
 			return Sequence(joins)
 		})
 	}
