@@ -467,3 +467,27 @@ func FoldLeft[A any, B any](stm Stream[A], zero B, combine func(B, A) B) io.IO[B
 		})
 	})
 }
+
+// Wrapf wraps errors produced by this stream with additional context info.
+func Wrapf[A any](stm Stream[A], format string, args ...interface{}) Stream[A] {
+	iosra := io.IO[StepResult[A]](stm)
+	w := io.Wrapf(iosra, format, args...)
+	m := io.FlatMap(w, func(sra StepResult[A]) (res io.IO[StepResult[A]]) {
+		if sra.IsFinished {
+			res = io.Lift(sra)
+		} else {
+			cont := Stream[A](
+				io.Delay(func() io.IO[StepResult[A]] {
+					return io.IO[StepResult[A]](Wrapf(sra.Continuation, format, args...))
+				}),
+			)
+			if sra.HasValue {
+				res = io.Lift(NewStepResult(sra.Value, cont))
+			} else {
+				res = io.Lift(NewStepResultEmpty(cont))
+			}
+		}
+		return
+	})
+	return Stream[A](m)
+}
