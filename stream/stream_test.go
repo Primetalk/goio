@@ -148,8 +148,6 @@ func TestFoldLeftEval(t *testing.T) {
 }
 
 func TestStateFlatMapWithFinishAndFailureHandling(t *testing.T) {
-	failedStream := stream.Eval(io.Fail[int](errExpected))
-	natsAndThenFail := stream.AndThen(nats10, failedStream)
 	sumStream := stream.StateFlatMapWithFinishAndFailureHandling(natsAndThenFail, 0,
 		func(i, j int) io.IO[fun.Pair[int, stream.Stream[int]]] {
 			return io.Lift(fun.NewPair(i+j, stream.Empty[int]()))
@@ -189,4 +187,13 @@ func TestStateFlatMapWithFinishAndFailureHandling2(t *testing.T) {
 	sum, err1 := io.UnsafeRunSync(sumIO)
 	assert.NoError(t, err1)
 	assert.Equal(t, -45, sum)
+}
+
+func TestWrapf(t *testing.T) {
+	wrappedNatsAndThenFail := stream.Wrapf(natsAndThenFail, "wrapped")
+	wrLastIO := stream.Last(wrappedNatsAndThenFail)
+	_, err1 := io.UnsafeRunSync(wrLastIO)
+	if assert.Error(t, err1) {
+		assert.Contains(t, err1.Error(), "wrapped")
+	}
 }

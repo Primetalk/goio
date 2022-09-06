@@ -23,6 +23,8 @@ var printInt = stream.NewSink(func(i int) { fmt.Printf("%d", i) })
 var errExpected = errors.New("expected error")
 var failedStream = stream.Eval(io.Fail[int](errExpected))
 
+var natsAndThenFail = stream.AndThen(nats10, failedStream)
+
 func UnsafeStreamToSlice[A any](t *testing.T, stm stream.Stream[A]) []A {
 	return UnsafeIO(t, stream.ToSlice(stm))
 }
