@@ -51,24 +51,54 @@ func NewStepResultFinished[A any]() StepResult[A] {
 	}
 }
 
+// StreamFold performs arbitrary processing of a stream's single step result.
+func StreamFold[A any, B any](
+	stm Stream[A],
+	onFinish func() io.IO[B],
+	onValue func(a A, tail Stream[A]) io.IO[B],
+	onEmpty func(tail Stream[A]) io.IO[B],
+	onError func(err error) io.IO[B],
+) io.IO[B] {
+	return io.Fold(
+		io.IO[StepResult[A]](stm),
+		func(sra StepResult[A]) (iores io.IO[B]) {
+			if sra.IsFinished {
+				iores = onFinish()
+			} else {
+				if sra.HasValue {
+					iores = onValue(sra.Value, sra.Continuation)
+				} else {
+					iores = onEmpty(sra.Continuation)
+				}
+			}
+			return
+		},
+		onError,
+	)
+}
+
+// LazyFinishedStepResult returns
+func LazyFinishedStepResult[A any]() io.IO[StepResult[A]] {
+	return io.Lift(NewStepResultFinished[A]())
+}
+
 // MapEval maps the values of the stream. The provided function returns an IO.
 func MapEval[A any, B any](stm Stream[A], f func(a A) io.IO[B]) Stream[B] {
-	return Stream[B](io.FlatMap(
-		io.IO[StepResult[A]](stm),
-		func(sra StepResult[A]) io.IO[StepResult[B]] {
-			if sra.IsFinished {
-				return io.Lift(NewStepResultFinished[B]())
-			} else if sra.HasValue {
-				iob := f(sra.Value)
-				return io.Map(iob, func(b B) StepResult[B] {
-					return NewStepResult(b, MapEval(sra.Continuation, f))
-				})
-			} else {
-				return io.Lift(
-					NewStepResultEmpty(MapEval(sra.Continuation, f)),
-				)
-			}
-		}))
+	return Stream[B](StreamFold(stm,
+		LazyFinishedStepResult[B],
+		func(a A, tail Stream[A]) io.IO[StepResult[B]] {
+			iob := f(a)
+			return io.Map(iob, func(b B) StepResult[B] {
+				return NewStepResult(b, MapEval(tail, f))
+			})
+		},
+		func(tail Stream[A]) io.IO[StepResult[B]] {
+			return io.Lift(
+				NewStepResultEmpty(MapEval(tail, f)),
+			)
+		},
+		io.Fail[StepResult[B]],
+	))
 }
 
 // Map converts values of the stream.
@@ -90,20 +120,23 @@ func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 
 // AndThenLazy appends another stream. The other stream is constructed lazily.
 func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
-	return Stream[A](io.FlatMap(
-		io.IO[StepResult[A]](stm1),
-		func(sra StepResult[A]) io.IO[StepResult[A]] {
-			if sra.IsFinished {
-				return io.IO[StepResult[A]](stm2())
-			} else {
-				return io.Lift(StepResult[A]{
-					Value:        sra.Value,
-					Continuation: AndThenLazy(sra.Continuation, stm2),
-					HasValue:     sra.HasValue,
-				})
-			}
-		}))
-
+	return Stream[A](StreamFold(
+		stm1,
+		func() io.IO[StepResult[A]] {
+			return io.IO[StepResult[A]](stm2())
+		},
+		func(a A, tail Stream[A]) io.IO[StepResult[A]] {
+			return io.Lift(
+				NewStepResult(a, AndThenLazy(tail, stm2)),
+			)
+		},
+		func(tail Stream[A]) io.IO[StepResult[A]] {
+			return io.Lift(
+				NewStepResultEmpty(AndThenLazy(tail, stm2)),
+			)
+		},
+		io.Fail[StepResult[A]],
+	))
 }
 
 // FlatMap constructs a new stream by concatenating all substreams, produced by f

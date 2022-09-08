@@ -328,6 +328,7 @@ Functions to explicitly deal with failures:
 
 - `stream.FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]]` - FoldToGoResult converts a stream into a stream of go results. All go results will be non-error except probably the last one.
 - `stream.UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A]` - UnfoldGoResult converts a stream of GoResults back to normal stream. On the first encounter of Error, the stream fails.
+- `stream.StreamFold[A any, B any](stm Stream[A], onFinish func() io.IO[B], onValue func(a A, tail Stream[A]) io.IO[B], onEmpty func(tail Stream[A]) io.IO[B], onError func(err error) io.IO[B]) io.IO[B]` - StreamFold performs arbitrary processing of a stream's single step result.
 
 Functions to explicitly deal with failures and stream completion:
 
