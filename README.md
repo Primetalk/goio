@@ -131,6 +131,9 @@ To construct an IO one may use the following functions:
 - `io.Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) IO[B]` - handles both happy and sad paths.
 - `io.Recover[A any](io IO[A], recover func(err error)IO[A])IO[A]` - handle only sad path and recover some errors to happy path.
 - `io.OnError[A any](io IO[A], onError func(err error) IO[fun.Unit]) IO[A]` - OnError executes a side effect when there is an error.
+- `io.Retry[A any, S any](ioa IO[A], strategy func(s S, err error) IO[option.Option[S]], zero S) IO[A]` - Retry performs the same operation a few times based on the retry strategy.
+- `io.RetryS[A any, S any](ioa IO[A], strategy func(s S, err error) IO[option.Option[S]], zero S) IO[fun.Pair[A, S]]` - RetryS performs the same operation a few times based on the retry strategy. Also returns the last state of the error-handling strategy.
+- `io.RetryStrategyMaxCount(substring string) func(s int, err error) IO[option.Option[int]]` - RetryStrategyMaxCount is a strategy that retries n times immediately.
 
 ### Manipulation
 

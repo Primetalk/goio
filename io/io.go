@@ -180,43 +180,12 @@ func Fold[A any, B any](ioA IO[A], f func(a A) IO[B], recover func(error) IO[B])
 	}
 }
 
-// FoldToGoResult converts either value or error to go result
-// typically it should never fail.
-func FoldToGoResult[A any](io IO[A]) IO[GoResult[A]] {
-	return Fold(
-		io,
-		func(a A) IO[GoResult[A]] {
-			return Lift(GoResult[A]{Value: a})
-		},
-		func(err error) IO[GoResult[A]] {
-			return Lift(GoResult[A]{Error: err})
-		},
-	)
-}
-
-// UnfoldGoResult represents GoResult back to ordinary IO.
-func UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A] {
-	return MapErr(iogr, func(gr GoResult[A]) (A, error) { return gr.Value, gr.Error })
-}
-
 // FoldErr folds IO using simple Go-style functions that might fail.
 func FoldErr[A any, B any](ioA IO[A], f func(a A) (B, error), recover func(error) (B, error)) IO[B] {
 	return Fold(ioA,
 		func(a A) IO[B] { return LiftPair(f(a)) },
 		func(err error) IO[B] { return LiftPair(recover(err)) },
 	)
-}
-
-// Recover handles a potential error from IO. It does not fail itself.
-func Recover[A any](io IO[A], recover func(err error) IO[A]) IO[A] {
-	return Fold(io, Lift[A], recover)
-}
-
-// OnError executes a side effect when there is an error.
-func OnError[A any](io IO[A], onError func(err error) IO[fun.Unit]) IO[A] {
-	return Fold(io, Lift[A], func(err error) IO[A] {
-		return AndThen(onError(err), Fail[A](err))
-	})
 }
 
 // Sequence takes a slice of IOs and returns an IO that will contain a slice of results.
