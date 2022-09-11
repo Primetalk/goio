@@ -113,6 +113,11 @@ func Map[A any, B any](ioA IO[A], f func(a A) B) IO[B] {
 	return MapErr(ioA, func(a A) (B, error) { return f(a), nil })
 }
 
+// MapConst ignores the result and replaces it with the given constant.
+func MapConst[A any, B any](ioA IO[A], b B) IO[B] {
+	return Map(ioA, fun.Const[A](b))
+}
+
 // FlatMap converts the result of IO[A] using a function that itself returns an IO[B].
 // It'll fail if any of IO[A] or IO[B] fail.
 func FlatMap[A any, B any](ioA IO[A], f func(a A) IO[B]) IO[B] {
