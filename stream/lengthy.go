@@ -39,3 +39,31 @@ func Drop[A any](stm Stream[A], n int) Stream[A] {
 			}))
 	}
 }
+
+// TakeWhile returns the beginning of the stream such that all elements satisfy the predicate.
+func TakeWhile[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
+	return Stream[A](io.Map(
+		io.IO[StepResult[A]](stm),
+		func(sra StepResult[A]) StepResult[A] {
+			if sra.IsFinished || (sra.HasValue && !predicate(sra.Value)) {
+				sra.IsFinished = true
+			} else {
+				sra.Continuation = TakeWhile(sra.Continuation, predicate)
+			}
+			return sra
+		}))
+}
+
+// DropWhile removes the beginning of the stream so that the new stream starts with an element
+// that falsifies the predicate.
+func DropWhile[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
+	return Stream[A](io.Map(
+		io.IO[StepResult[A]](stm),
+		func(sra StepResult[A]) StepResult[A] {
+			if !sra.IsFinished && (sra.HasValue && predicate(sra.Value)) {
+				sra.HasValue = false
+				sra.Continuation = DropWhile(sra.Continuation, predicate)
+			}
+			return sra
+		}))
+}
