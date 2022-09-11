@@ -143,6 +143,7 @@ The following functions could be used to manipulate computations:
 - `io.AndThen[A any, B any](ioa IO[A], iob IO[B]) IO[B]` - AndThen runs the first IO, ignores it's result and then runs the second one.
 - `io.Map[A any, B any](ioA IO[A], f func(a A) B) IO[B]`
 - `io.MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B]`
+- `io.MapConst[A any, B any](ioA IO[A], b B) IO[B]` - MapConst ignores the result and replaces it with the given constant.
 - `io.Sequence[A any](ioas []IO[A]) (res IO[[]A])`
 - `io.SequenceUnit(ious []IO[Unit]) (res IOUnit)`
 - `io.Unptr[A any](ptra *A) IO[A]` - retrieves the value at pointer. Fails if nil
@@ -197,6 +198,10 @@ type ClosableIO interface {
 - `resource.FromClosableIO[A ClosableIO](ioa io.IO[A]) Resource[A]` - FromClosableIO constructs a new resource from some value that itself supports method Close.
 - `resource.BoundedExecutionContextResource(size int, queueLimit int) Resource[io.ExecutionContext]` - BoundedExecutionContextResource returns a resource that is a bounded execution context.
 - `resource.Fail[A any](err error) Resource[A]` - Fail creates a resource that will fail during acquisition.
+
+## Transaction-like resources
+
+- `transaction.Bracket[A any, T any](acquire io.IO[T], commit func(T) io.IOUnit, rollback func(T) io.IOUnit) func(tr func(t T) io.IO[A]) io.IO[A]` - Bracket executes user computation with transactional guarantee. If user computation is successful - commit is executed. Otherwise - rollback.
 
 ## Parallel computing
 

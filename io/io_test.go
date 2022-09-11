@@ -1,7 +1,6 @@
 package io_test
 
 import (
-	"errors"
 	"log"
 	"testing"
 
@@ -35,8 +34,6 @@ func TestErr(t *testing.T) {
 }
 
 func TestFinally(t *testing.T) {
-	errorMessage := "on purpose failure"
-	failure := io.Fail[string](errors.New(errorMessage))
 	finalizerExecuted := false
 	onErrorExecuted := false
 	fin := io.Finally(failure, io.FromPureEffect(func() { finalizerExecuted = true }))
