@@ -388,6 +388,8 @@ A few functions that can produce infinite stream (`Repeat`), cut the stream to k
 - `stream.Take[A any](stm Stream[A], n int) Stream[A]`
 - `stream.Drop[A any](stm Stream[A], n int) Stream[A]`
 - `stream.ChunkN[A any](n int)func (sa Stream[A]) Stream[[]A]` - ChunkN groups elements by n and produces a stream of slices.
+- `stream.TakeWhile[A any](stm Stream[A], predicate func(A) bool) Stream[A]` - TakeWhile returns the beginning of the stream such that all elements satisfy the predicate.
+- `stream.DropWhile[A any](stm Stream[A], predicate func(A) bool) Stream[A]` - DropWhile removes the beginning of the stream so that the new stream starts with an element that falsifies the predicate.
 
 ### Mangling
 
