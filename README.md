@@ -316,6 +316,7 @@ Typical manipulations with a stream includes `Map`, `FlatMap`, `Filter` and some
 - `stream.FlatMap[A any, B any](stm Stream[A], f func (a A) Stream[B]) Stream[B]`
 - `stream.AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A]`
 - `stream.MapEval[A any, B any](stm Stream[A], f func(a A)io.IO[B]) Stream[B]`
+- `stream.SideEval[A any](stm Stream[A], iounit func(A) io.IOUnit) Stream[A]` - SideEval executes a computation for each element for it's side effect. Could be used for logging, for instance.
 - `stream.Filter[A any](stm Stream[A], f func(A)bool) Stream[A]`
 - `stream.FilterNot[A any](stm Stream[A], f func(A)bool) Stream[A]`
 - `stream.Flatten[A any](stm Stream[Stream[A]]) Stream[A]` - Flatten simplifies a stream of streams to just the stream of values by concatenating all inner streams.

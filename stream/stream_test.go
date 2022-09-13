@@ -197,3 +197,14 @@ func TestWrapf(t *testing.T) {
 		assert.Contains(t, err1.Error(), "wrapped")
 	}
 }
+
+func TestSideEval(t *testing.T) {
+	sum := 0
+	stm := stream.SideEval(nats10, func(i int) io.IOUnit {
+		return io.FromPureEffect(func() {
+			sum += i
+		})
+	})
+	UnsafeStreamToSlice(t, stm)
+	assert.Equal(t, 55, sum)
+}
