@@ -113,6 +113,14 @@ func MapPipe[A any, B any](f func(a A) B) Pipe[A, B] {
 	}
 }
 
+// SideEval executes a computation for each element for it's side effect.
+// Could be used for logging, for instance.
+func SideEval[A any](stm Stream[A], iounit func(A) io.IOUnit) Stream[A] {
+	return MapEval(stm, func(a A) io.IO[A] {
+		return io.AndThen(iounit(a), io.Lift(a))
+	})
+}
+
 // AndThen appends another stream after the end of the first one.
 func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 	return AndThenLazy(stm1, func() Stream[A] { return stm2 })
