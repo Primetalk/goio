@@ -10,10 +10,12 @@ import (
 )
 
 func BenchmarkStreamSum(b *testing.B) {
-	sumIO := stream.Head(stream.Sum(stream.Take(nats, 10000)))
-	res, err1 := io.UnsafeRunSync(sumIO)
-	assert.NoError(b, err1)
-	assert.Equal(b, 50005000, res)
+	for i := 0; i < b.N; i++ {
+		sumIO := stream.Head(stream.Sum(stream.Take(nats, 10000)))
+		res, err1 := io.UnsafeRunSync(sumIO)
+		assert.NoError(b, err1)
+		assert.Equal(b, 50005000, res)
+	}
 }
 
 var range10000 = func() (res []int) {
@@ -22,6 +24,18 @@ var range10000 = func() (res []int) {
 }()
 
 func BenchmarkSliceSum(b *testing.B) {
-	res := slice.Sum(range10000)
-	assert.Equal(b, 50005000, res)
+	for i := 0; i < b.N; i++ {
+		res := slice.Sum(range10000)
+		assert.Equal(b, 50005000, res)
+	}
+}
+
+func BenchmarkForSum(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		sum := 0
+		for j := 1; j <= 10000; j ++ {
+			sum += j
+		}
+		assert.Equal(b, 50005000, sum)
+	}
 }

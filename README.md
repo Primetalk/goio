@@ -488,3 +488,42 @@ Some helper functions to deal with `map[K]V`.
 
 - `maps.Keys[K comparable, V any](m map[K]V) (keys []K)` - Keys returns keys of the map
 - `maps.Merge[K comparable, V any](m1 map[K]V, m2 map[K]V, combine func(V, V) V) (m map[K]V)` - Merge combines two maps. Function `combine` is invoked when the same key is available in both maps.
+
+## Performance considerations
+
+There is a small benchmark of stream sum that can give some idea of what performance one might expect.
+
+
+In all benchmarks the same computation (`sum([1,10000]`) is performed using 3 different mechanisms:
+- `BenchmarkForSum` - a simple for-loop;
+- `BenchmarkSliceSum` - a slice operation `Sum`;
+- `BenchmarkStreamSum` - a stream of `int`s encapsulated in `io.IO[int]` and then `stream.Sum`.
+
+Here is the result of a run on a computer:
+```
+✗ go test -benchmem -run=^$ -bench ^Benchmark ./stream
+goos: linux
+goarch: amd64
+pkg: github.com/primetalk/goio/stream
+cpu: Intel(R) Core(TM) i7-8750H CPU @ 2.20GHz
+BenchmarkStreamSum-12                 94          13969686 ns/op        10241737 B/op     310057 allocs/op
+BenchmarkSliceSum-12              305767              3806 ns/op               8 B/op          1 allocs/op
+BenchmarkForSum-12                375842              3145 ns/op               8 B/op          1 allocs/op
+PASS
+ok      github.com/primetalk/goio/stream        5.224s
+```
+
+The following conclusions could be inferred:
+1. There are certain tasks that might benefit from lower-level implementation ;).
+2. Slice operation is slower than `for` by ~20%.
+3. Handling a single stream element takes ~1.4 mks. There are ~31 allocations per single stream element. And memory overhead is ~1024 bytes per stream element.
+
+Hence, it seems to be easy to decide, whether stream-based approach will fit a particular application needs. If the size of a single stream element is greated than 1K and it's processing requires more than 1.4 mks, then stream-based approach won't hinder the performance much.
+
+For example, if each element is a json structure of size 10K that is received via 1G internet connection, it's transmission would take 10 mks. So stream processing will add ~10% overhead to these numbers. These numbers might be a good boundary for consideration. If element size is greater and processing is more complex, then stream overhead becomes negligible.
+
+As a reminder, here are some benefits of the stream processing:
+1. Zero boilerplate error-handling.
+2. Composable and reusable functions/modules.
+3. Zero debug effort (in case of following best practices of functional programming - immutabile, var-free code).
+4. Constant-memory (despite allocations which are short-lived and GC-consumable).
