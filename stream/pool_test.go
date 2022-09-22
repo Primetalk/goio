@@ -100,6 +100,6 @@ func TestThroughExecutionContextUnordered(t *testing.T) {
 	start := time.Now()
 	results := UnsafeIO(t, resultsIO)
 	assert.Equal(t, taskCount, slice.SetSize(slice.ToSet(results)))
-	required_duration := durMs*taskCount/concurrency + 50
+	required_duration := durMs*taskCount/concurrency * 2
 	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
 }
