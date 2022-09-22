@@ -419,6 +419,9 @@ Pool is a pipe that takes some computations and return their results (possibly f
 - `stream.ThroughPool[A any](sa Stream[io.IO[A]], pool Pipe[io.IO[A], io.GoResult[A]]) Stream[io.GoResult[A]]` - ThroughPool runs a stream of tasks through the pool.
 - `stream.NewPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io.IO[Pool[A]]` - NewPoolFromExecutionContext creates an execution pool that will execute tasks concurrently.
 - `stream.ThroughExecutionContext[A any](sa Stream[io.IO[A]], ec io.ExecutionContext, capacity int) Stream[io.GoResult[A]]` - ThroughExecutionContext runs a stream of tasks through an ExecutionContext.
+- `stream.JoinManyFibers[A any](capacity int) io.IO[Pipe[io.Fiber[A], io.GoResult[A]]]` - JoinManyFibers starts a separate go-routine for each incoming Fiber. As soon as result is ready it is sent to output. At any point in time at most capacity fibers could be waited for.
+- `stream.NewUnorderedPoolFromExecutionContext[A any](ec io.ExecutionContext, capacity int) io.IO[Pipe[io.IO[A], io.GoResult[A]]]` - NewUnorderedPoolFromExecutionContext creates an execution pool that will execute tasks concurrently. Each task's result will be passed to a channel as soon as it completes. Hence, the order of results will be different from the order of tasks.
+- `stream.ThroughExecutionContextUnordered[A any](sa Stream[io.IO[A]], ec io.ExecutionContext, capacity int) Stream[A]` - ThroughExecutionContext runs a stream of tasks through an ExecutionContext. The order of results is not preserved! This operation recovers GoResults. This will lead to lost of good elements after one that failed. At most `capacity - 1` number of lost elements.
 
 ## Text processing
 

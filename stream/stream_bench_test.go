@@ -33,7 +33,7 @@ func BenchmarkSliceSum(b *testing.B) {
 func BenchmarkForSum(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		sum := 0
-		for j := 1; j <= 10000; j ++ {
+		for j := 1; j <= 10000; j++ {
 			sum += j
 		}
 		assert.Equal(b, 50005000, sum)
