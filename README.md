@@ -438,6 +438,8 @@ Some utilities that are convenient when working with slices.
 - `slice.FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)`
 - `slice.Filter[A any](as []A, p func(a A) bool) (res []A)`
 - `slice.FilterNot[A any](as []A, p func(a A) bool) (res []A)` - same as `Filter`, but inverses the predicate `p`.
+- `slice.Exists[A any](p Predicate[A]) Predicate[[]A]` - Exists returns a predicate on slices. The predicate is true if there is an element that satisfy the given element-wise predicate. It's false for an empty slice.
+- `slice.Forall[A any](p Predicate[A]) Predicate[[]A]` - Forall returns a predicate on slices. The predicate is true if all elements satisfy the given element-wise predicate. It's true for an empty slice.
 - `slice.Collect[A any, B any](as []A, f func(a A) option.Option[B]) (bs []B)` - Collect runs through the slice, executes the given function and only keeps good returned values.
 - `slice.Count[A any](as []A, predicate Predicate[A]) (cnt int)` - Count counts the number of elements that satisfy the given predicate.
 - `slice.Flatten[A any](ass [][]A)(aas[]A)`

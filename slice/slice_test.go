@@ -12,6 +12,10 @@ func IsEven(i int) bool {
 	return i%2 == 0
 }
 
+func IsPositive(i int) bool {
+	return i > 0
+}
+
 var nats10Values = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 func TestFilter(t *testing.T) {
@@ -19,7 +23,10 @@ func TestFilter(t *testing.T) {
 	assert.Equal(t, 30, sumEven)
 
 	sumOdd := slice.Sum(slice.FilterNot(nats10Values, IsEven))
+
 	assert.Equal(t, 25, sumOdd)
+	assert.True(t, slice.Exists(IsEven)(nats10Values))
+	assert.True(t, slice.Forall(IsPositive)(nats10Values))
 }
 
 func TestFlatten(t *testing.T) {

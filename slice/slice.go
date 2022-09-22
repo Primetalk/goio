@@ -181,3 +181,35 @@ func Collect[A any, B any](as []A, f func(a A) option.Option[B]) (bs []B) {
 	}
 	return
 }
+
+// Exists returns a predicate on slices.
+// The predicate is true if there is an element that satisfy the given element-wise predicate.
+// It's false for an empty slice.
+func Exists[A any](p Predicate[A]) Predicate[[]A] {
+	return func(as []A) (res bool) {
+		res = false
+		for _, a := range as {
+			if p(a) {
+				res = true
+				break
+			}
+		}
+		return
+	}
+}
+
+// Forall returns a predicate on slices.
+// The predicate is true if all elements satisfy the given element-wise predicate.
+// It's true for an empty slice.
+func Forall[A any](p Predicate[A]) Predicate[[]A] {
+	return func(as []A) (res bool) {
+		res = true
+		for _, a := range as {
+			if !p(a) {
+				res = false
+				break
+			}
+		}
+		return
+	}
+}
