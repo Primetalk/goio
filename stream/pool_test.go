@@ -79,3 +79,27 @@ func TestFailedDataStreamThroughEC(t *testing.T) {
 		assert.Equal(t, expectedError, err1)
 	}
 }
+
+func TestThroughExecutionContextUnordered(t *testing.T) {
+	durMs := 1
+	sleeps := func(id int) io.IO[int] {
+		return io.Pure(func() int {
+			time.Sleep(time.Duration(durMs) * time.Millisecond)
+			return id
+		})
+	}
+	sleepTaskInfs := stream.Map(nats, sleeps)
+	taskCount := 1000
+
+	sleepTasks := stream.Take(sleepTaskInfs, taskCount)
+	concurrency := 10
+	ec := io.BoundedExecutionContext(concurrency, 0)
+	sleepResults := stream.ThroughExecutionContextUnordered(sleepTasks, ec, concurrency)
+	resultsIO := stream.ToSlice(sleepResults)
+
+	start := time.Now()
+	results := UnsafeIO(t, resultsIO)
+	assert.Equal(t, taskCount, slice.SetSize(slice.ToSet(results)))
+	required_duration := durMs*taskCount/concurrency + 50
+	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
+}
