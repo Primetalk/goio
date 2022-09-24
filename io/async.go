@@ -4,7 +4,7 @@ package io
 type Callback[A any] func(A, error)
 
 // Async[A] constructs an IO given a function that will eventually call a callback.
-// Internally this function creates a channel and blocks on in until the function calls it.
+// Internally this function creates a channel and blocks on it until the function calls it.
 func Async[A any](k func(Callback[A])) IO[A] {
 	return func() ResultOrContinuation[A] {
 		ch := make(chan ResultOrContinuation[A])

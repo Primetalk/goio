@@ -228,6 +228,7 @@ type Fiber[A any] interface {
 - `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
 - `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
 - `io.FailedFiber[A any](err error) Fiber[A]` - FailedFiber creates a fiber that will fail on Join or Close with the given error.
+- `io.JoinWithTimeout[A any](f Fiber[A], d time.Duration) IO[A]` - JoinWithTimeout joins the given fiber and waits no more than the given duration.
 
 ### Execution contexts
 
@@ -278,6 +279,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 - `io.Never[A any]() IO[A]` - Never is a simple IO that never returns.
 - `io.Notify[A any](d time.Duration, value A, cb Callback[A]) IO[fun.Unit]` - Notify starts a separate thread that will call the given callback after the specified time.
 - `io.NotifyToChannel[A any](d time.Duration, value A, ch chan A) IO[fun.Unit]` - NotifyToChannel sends message to channel after specified duration.
+- `io.AfterTimeout[A any](duration time.Duration, ioa IO[A]) IO[A]` - AfterTimeout sleeps the given time and then starts the other IO.
 
 ### Simple async operations
 

@@ -3,6 +3,7 @@ package io
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/primetalk/goio/fun"
 )
@@ -127,4 +128,9 @@ func (f *failedFiberImpl[A]) Close() IO[fun.Unit] {
 // JoinFiberAsGoResult joins the fiber synchronously and returns GoResult.
 func JoinFiberAsGoResult[A any](f Fiber[A]) GoResult[A] {
 	return RunSync(f.Join())
+}
+
+// JoinWithTimeout joins the given fiber and waits no more than the given duration.
+func JoinWithTimeout[A any](f Fiber[A], d time.Duration) IO[A] {
+	return WithTimeout[A](d)(f.Join())
 }
