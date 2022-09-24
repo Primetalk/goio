@@ -9,9 +9,8 @@ import (
 
 // Sleep makes the IO sleep the specified time.
 func Sleep(d time.Duration) IO[fun.Unit] {
-	return FromUnit(func() error {
+	return FromPureEffect(func() {
 		time.Sleep(d)
-		return nil
 	})
 }
 
@@ -35,7 +34,7 @@ func WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A] {
 	}
 }
 
-// Never is a simple IO that never returns
+// Never is a simple IO that never returns.
 func Never[A any]() IO[A] {
 	return Async(func(c Callback[A]) {})
 }
@@ -57,4 +56,9 @@ func NotifyToChannel[A any](d time.Duration, value A, ch chan A) IO[fun.Unit] {
 	return Notify(d, value, func(str A, err error) {
 		ch <- value
 	})
+}
+
+// AfterTimeout sleeps the given time and then starts the other IO.
+func AfterTimeout[A any](duration time.Duration, ioa IO[A]) IO[A] {
+	return AndThen(Sleep(duration), ioa)
 }
