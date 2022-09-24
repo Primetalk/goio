@@ -362,6 +362,7 @@ After constructing the desired pipeline, the stream needs to be executed.
 - `stream.ToSlice[A any](stm Stream[A]) io.IO[[]A]`
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
 - `stream.HeadAndTail[A any](stm Stream[A]) io.IO[fun.Pair[A, Stream[A]]]` - HeadAndTail returns the very first element of the stream and the rest of the stream.
+- `stream.TakeAndTail[A any](stm Stream[A], n int, prefix []A) io.IO[fun.Pair[[]A, Stream[A]]] ` - TakeAndTail collects n leading elements of the stream and returns them along with the tail of the stream. If the stream is shorter, then only available elements are returned and an emtpy stream.
 - `stream.Last[A any](stm Stream[A]) io.IO[A]` - Last keeps track of the current element of the stream and returns it when the stream completes.
 - `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
 - `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.

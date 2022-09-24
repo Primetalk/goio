@@ -156,3 +156,27 @@ func Partition[A any, C any, D any](stm Stream[A],
 		return
 	})
 }
+
+// TakeAndTail collects n leading elements of the stream and
+// returns them along with the tail of the stream.
+// If the stream is shorter, then only available elements are returned and an emtpy stream.
+func TakeAndTail[A any](stm Stream[A], n int, prefix []A) io.IO[fun.Pair[[]A, Stream[A]]] {
+	if n == 0 {
+		return io.Lift(fun.NewPair(prefix, stm))
+	} else {
+		return StreamFold(stm,
+			func() io.IO[fun.Pair[[]A, Stream[A]]] {
+				return io.Lift(fun.NewPair(prefix, Empty[A]()))
+			},
+			func(a A, tail Stream[A]) io.IO[fun.Pair[[]A, Stream[A]]] {
+				return TakeAndTail(tail, n-1, append(prefix, a))
+			},
+			func(tail Stream[A]) io.IO[fun.Pair[[]A, Stream[A]]] {
+				return TakeAndTail(tail, n, prefix)
+			},
+			func(err error) io.IO[fun.Pair[[]A, Stream[A]]] {
+				return io.Fail[fun.Pair[[]A, Stream[A]]](err)
+			},
+		)
+	}
+}
