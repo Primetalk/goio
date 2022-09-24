@@ -35,3 +35,10 @@ func TestPartition(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, fun.NewPair(30, "25"), res)
 }
+
+func TestHeadAndTail(t *testing.T) {
+	p := UnsafeIO(t, stream.HeadAndTail(nats))
+	assert.Equal(t, 1, p.V1)
+	stm2 := p.V2
+	assert.Equal(t, 2, UnsafeIO(t, stream.Head(stm2)))
+}

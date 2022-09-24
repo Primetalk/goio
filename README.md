@@ -359,6 +359,7 @@ After constructing the desired pipeline, the stream needs to be executed.
 - `stream.AppendToSlice[A any](stm Stream[A], start []A) io.IO[[]A]`
 - `stream.ToSlice[A any](stm Stream[A]) io.IO[[]A]`
 - `stream.Head[A any](stm Stream[A]) io.IO[A]` - returns the first element if it exists. Otherwise - an error.
+- `stream.HeadAndTail[A any](stm Stream[A]) io.IO[fun.Pair[A, Stream[A]]]` - HeadAndTail returns the very first element of the stream and the rest of the stream.
 - `stream.Last[A any](stm Stream[A]) io.IO[A]` - Last keeps track of the current element of the stream and returns it when the stream completes.
 - `stream.Collect[A any](stm Stream[A], collector func (A) error) io.IO[fun.Unit]` - collects all element from the stream and for each element invokes the provided function.
 - `stream.ForEach[A any](stm Stream[A], collector func (A)) io.IO[fun.Unit]` - invokes a simple function for each element of the stream.
@@ -525,12 +526,12 @@ The following conclusions could be inferred:
 2. Slice operation is slower than `for` by ~20%.
 3. Handling a single stream element takes ~1.4 mks. There are ~31 allocations per single stream element. And memory overhead is ~1024 bytes per stream element.
 
-Hence, it seems to be easy to decide, whether stream-based approach will fit a particular application needs. If the size of a single stream element is greated than 1K and it's processing requires more than 1.4 mks, then stream-based approach won't hinder the performance much.
+Hence, it seems to be easy to decide, whether stream-based approach will fit a particular application needs. If the size of a single stream element is greater than 1K and it's processing requires more than 1.4 mks, then stream-based approach won't hinder the performance much.
 
 For example, if each element is a json structure of size 10K that is received via 1G internet connection, it's transmission would take 10 mks. So stream processing will add ~10% overhead to these numbers. These numbers might be a good boundary for consideration. If element size is greater and processing is more complex, then stream overhead becomes negligible.
 
 As a reminder, here are some benefits of the stream processing:
 1. Zero boilerplate error-handling.
 2. Composable and reusable functions/modules.
-3. Zero debug effort (in case of following best practices of functional programming - immutabile, var-free code).
+3. Zero debug effort (in case of following best practices of functional programming - immutability, var-free code).
 4. Constant-memory (despite allocations which are short-lived and GC-consumable).

@@ -1,6 +1,7 @@
 package stream
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/primetalk/goio/either"
@@ -74,7 +75,29 @@ func ToSlice[A any](stm Stream[A]) io.IO[[]A] {
 	return AppendToSlice(stm, []A{})
 }
 
-// Head takes the first element and executes it.
+// ErrHeadOfEmptyStream - an error that is returned when someone attempts to retrieve
+// the head of an empty stream.
+var ErrHeadOfEmptyStream = errors.New("head of empty stream")
+
+// HeadAndTail returns the very first element of the stream and the rest of the stream.
+func HeadAndTail[A any](stm Stream[A]) io.IO[fun.Pair[A, Stream[A]]] {
+	return StreamFold(stm,
+		func() io.IO[fun.Pair[A, Stream[A]]] {
+			return io.Fail[fun.Pair[A, Stream[A]]](ErrHeadOfEmptyStream)
+		},
+		func(a A, tail Stream[A]) io.IO[fun.Pair[A, Stream[A]]] {
+			return io.Lift(fun.NewPair(a, tail))
+		},
+		func(tail Stream[A]) io.IO[fun.Pair[A, Stream[A]]] {
+			return HeadAndTail(tail)
+		},
+		func(err error) io.IO[fun.Pair[A, Stream[A]]] {
+			return io.Fail[fun.Pair[A, Stream[A]]](err)
+		},
+	)
+}
+
+// Head returns the first element of the stream.
 // It'll fail if the stream is empty.
 func Head[A any](stm Stream[A]) io.IO[A] {
 	slice1 := ToSlice(Take(stm, 1))
@@ -82,7 +105,7 @@ func Head[A any](stm Stream[A]) io.IO[A] {
 		if len(as) > 0 {
 			a = as[0]
 		} else {
-			err = fmt.Errorf("head of an empty stream")
+			err = ErrHeadOfEmptyStream
 		}
 		return
 	})
