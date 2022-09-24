@@ -42,3 +42,10 @@ func TestHeadAndTail(t *testing.T) {
 	stm2 := p.V2
 	assert.Equal(t, 2, UnsafeIO(t, stream.Head(stm2)))
 }
+
+func TestTakeAndTail(t *testing.T) {
+	p := UnsafeIO(t, stream.TakeAndTail(nats, 5, []int{}))
+	assert.ElementsMatch(t, []int{1, 2, 3, 4, 5}, p.V1)
+	stm2 := p.V2
+	assert.Equal(t, 6, UnsafeIO(t, stream.Head(stm2)))
+}
