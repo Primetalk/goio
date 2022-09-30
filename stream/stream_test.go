@@ -11,12 +11,10 @@ import (
 
 func TestStream(t *testing.T) {
 	empty := stream.Empty[int]()
-	_, err := io.UnsafeRunSync(stream.DrainAll(empty))
-	assert.Equal(t, nil, err)
+	_ = UnsafeIO(t, stream.DrainAll(empty))
 	stream10_12 := stream.LiftMany(10, 11, 12)
 	stream20_24 := Mul2(stream10_12)
-	res, err := io.UnsafeRunSync(stream.ToSlice(stream20_24))
-	assert.Equal(t, nil, err)
+	res := UnsafeIO(t, stream.ToSlice(stream20_24))
 	assert.Equal(t, []int{20, 22, 24}, res)
 }
 
@@ -25,17 +23,14 @@ func TestGenerate(t *testing.T) {
 		return s * 2
 	})
 
-	res, err := io.UnsafeRunSync(stream.Head(powers2))
-	assert.NoError(t, err)
+	res := UnsafeIO(t, stream.Head(powers2))
 	assert.Equal(t, 2, res)
 
 	powers2_10 := stream.Drop(powers2, 9)
-	res, err = io.UnsafeRunSync(stream.Head(powers2_10))
-	assert.NoError(t, err)
+	res = UnsafeIO(t, stream.Head(powers2_10))
 	assert.Equal(t, 1024, res)
 
-	res, err = io.UnsafeRunSync(stream.Last(stream.Take(powers2, 10)))
-	assert.NoError(t, err)
+	res = UnsafeIO(t, stream.Last(stream.Take(powers2, 10)))
 	assert.Equal(t, 1024, res)
 }
 
@@ -49,16 +44,14 @@ func TestDrainAll(t *testing.T) {
 				return a, nil
 			})
 		})
-	_, err := io.UnsafeRunSync(stream.DrainAll(natsAppend))
-	assert.NoError(t, err)
+	_ = UnsafeIO(t, stream.DrainAll(natsAppend))
 	assert.ElementsMatch(t, results, nats10Values)
 }
 
 func TestStateFlatMap(t *testing.T) {
 	sumStream := stream.Sum(nats10)
 	ioSum := stream.Head(sumStream)
-	sum, err := io.UnsafeRunSync(ioSum)
-	assert.NoError(t, err)
+	sum := UnsafeIO(t, ioSum)
 	assert.Equal(t, 55, sum)
 }
 
@@ -74,24 +67,20 @@ func TestFlatMapPipe(t *testing.T) {
 	})(nats10)
 
 	ioLen := stream.Head(stream.Len(natsRepeated))
-	len, err := io.UnsafeRunSync(ioLen)
-	assert.NoError(t, err)
+	len := UnsafeIO(t, ioLen)
 	assert.Equal(t, 100, len)
 
 	filtered := stream.Filter(natsRepeated, isEven)
 	sumStream := stream.Sum(filtered)
 	ioSum := stream.Head(sumStream)
-	var sum int
-	sum, err = io.UnsafeRunSync(ioSum)
-	assert.NoError(t, err)
+	sum := UnsafeIO(t, ioSum)
 	assert.Equal(t, 550, sum)
 }
 
 func TestChunks(t *testing.T) {
 	natsBy10 := stream.ChunkN[int](10)(stream.Take(nats, 19))
 	nats10to19IO := stream.Head(stream.Drop(natsBy10, 1))
-	nats10to19, err := io.UnsafeRunSync(nats10to19IO)
-	assert.NoError(t, err)
+	nats10to19 := UnsafeIO(t, nats10to19IO)
 	assert.ElementsMatch(t, []int{11, 12, 13, 14, 15, 16, 17, 18, 19}, nats10to19)
 }
 
@@ -100,8 +89,7 @@ func TestGroupBy(t *testing.T) {
 		return i / 5
 	})
 	groupsIO := stream.ToSlice(groupedNats)
-	groups, err := io.UnsafeRunSync(groupsIO)
-	assert.NoError(t, err)
+	groups := UnsafeIO(t, groupsIO)
 	expected := []fun.Pair[int, []int]{
 		{V1: 0, V2: []int{1, 2, 3, 4}},
 		{V1: 1, V2: []int{5, 6, 7}},
@@ -114,13 +102,20 @@ func TestGroupByEval(t *testing.T) {
 		return io.Lift(i / 5)
 	})
 	groupsIO := stream.ToSlice(groupedNats)
-	groups, err := io.UnsafeRunSync(groupsIO)
-	assert.NoError(t, err)
+	groups := UnsafeIO(t, groupsIO)
 	expected := []fun.Pair[int, []int]{
 		{V1: 0, V2: []int{1, 2, 3, 4}},
 		{V1: 1, V2: []int{5, 6, 7}},
 	}
 	assert.ElementsMatch(t, expected, groups)
+}
+
+func TestGroupByEvalFailed(t *testing.T) {
+	groupedNats := stream.GroupByEval(stream.Take(failedStream, 7), func(i int) io.IO[int] {
+		return io.Lift(i / 5)
+	})
+	groupsIO := stream.ToSlice(groupedNats)
+	UnsafeIOExpectError(t, errExpected, groupsIO)
 }
 
 func TestFailedStream(t *testing.T) {
@@ -130,10 +125,7 @@ func TestFailedStream(t *testing.T) {
 	fromCh := stream.FromChannel(ch)
 	sliceIO := stream.ToSlice(fromCh)
 	resIO := io.AndThen(toChIO, sliceIO)
-	_, err1 := io.UnsafeRunSync(resIO)
-	if assert.Error(t, err1) {
-		assert.Equal(t, errExpected, err1)
-	}
+	UnsafeIOExpectError(t, errExpected, resIO)
 }
 
 func plus(b int, a int) int {
@@ -142,9 +134,7 @@ func plus(b int, a int) int {
 
 func TestFoldLeftEval(t *testing.T) {
 	sumIO := stream.FoldLeft(nats10, 0, plus)
-	sum, err1 := io.UnsafeRunSync(sumIO)
-	assert.NoError(t, err1)
-	assert.Equal(t, 55, sum)
+	assert.Equal(t, 55, UnsafeIO(t, sumIO))
 }
 
 func TestStateFlatMapWithFinishAndFailureHandling(t *testing.T) {
@@ -161,8 +151,7 @@ func TestStateFlatMapWithFinishAndFailureHandling(t *testing.T) {
 		},
 	)
 	sumIO := stream.Head(sumStream)
-	sum, err1 := io.UnsafeRunSync(sumIO)
-	assert.NoError(t, err1)
+	sum := UnsafeIO(t, sumIO)
 	assert.Equal(t, -55, sum)
 }
 
@@ -184,8 +173,7 @@ func TestStateFlatMapWithFinishAndFailureHandling2(t *testing.T) {
 		},
 	)
 	sumIO := stream.Head(sumStream)
-	sum, err1 := io.UnsafeRunSync(sumIO)
-	assert.NoError(t, err1)
+	sum := UnsafeIO(t, sumIO)
 	assert.Equal(t, -45, sum)
 }
 
