@@ -462,17 +462,16 @@ We can convert a slice to a set:
 
 - `slice.ToSet[A comparable](as []A)(s Set[A])`
 
-Where the `Set` type is defined as follows:
+### Set utilities
+
+The `Set` type is defined as follows:
 
 - `type Set[A comparable] map[A]struct{}`
 
 And we can perform some operations with sets:
 
-- `slice.SetSize[A comparable](s Set[A]) int` - SetSize returns the size of the set.
-
-And some with arbitrary maps:
-
-- `slice.MapValues[K comparable, A any, B any](m map[K]A, f func(A)B) (res map[K]B)` - MapValues converts values in the map using the provided function.
+- `set.Contains[A comparable](set map[A]struct{}) func (A) bool` - Contains creates a predicate that will check if an element is in this set.
+- `set.SetSize[A comparable](s Set[A]) int` - SetSize returns the size of the set.
 
 ### Slices of numbers
 
@@ -499,6 +498,7 @@ Some helper functions to deal with `map[K]V`.
 - `maps.Keys[K comparable, V any](m map[K]V) (keys []K)` - Keys returns keys of the map
 - `maps.Merge[K comparable, V any](m1 map[K]V, m2 map[K]V, combine func(V, V) V) (m map[K]V)` - Merge combines two maps. Function `combine` is invoked when the same key is available in both maps.
 - `maps.MapKeys[K1 comparable, V any, K2 comparable](m1 map[K1]V, f func(K1) K2, combine func(V, V) V) (m2 map[K2]V)` - MapKeys converts original keys to new keys.
+- `map.MapValues[K comparable, A any, B any](m map[K]A, f func(A)B) (res map[K]B)` - MapValues converts values in the map using the provided function.
 
 ## Performance considerations
 

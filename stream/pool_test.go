@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/primetalk/goio/io"
+	"github.com/primetalk/goio/set"
 	"github.com/primetalk/goio/slice"
 	"github.com/primetalk/goio/stream"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestPool(t *testing.T) {
 	start := time.Now()
 	results, err := io.UnsafeRunSync(resultsIO)
 	assert.NoError(t, err)
-	assert.Equal(t, 100, slice.SetSize(slice.ToSet(results)))
+	assert.Equal(t, 100, set.SetSize(slice.ToSet(results)))
 	assert.WithinDuration(t, start, time.Now(), 200*time.Millisecond)
 }
 
@@ -53,7 +54,7 @@ func TestExecutionContext(t *testing.T) {
 	start := time.Now()
 	results, err := io.UnsafeRunSync(resultsIO)
 	assert.NoError(t, err)
-	assert.Equal(t, taskCount, slice.SetSize(slice.ToSet(results)))
+	assert.Equal(t, taskCount, set.SetSize(slice.ToSet(results)))
 	required_duration := 10*taskCount/concurrency + 50
 	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
 }
@@ -99,7 +100,7 @@ func TestThroughExecutionContextUnordered(t *testing.T) {
 
 	start := time.Now()
 	results := UnsafeIO(t, resultsIO)
-	assert.Equal(t, taskCount, slice.SetSize(slice.ToSet(results)))
+	assert.Equal(t, taskCount, set.SetSize(slice.ToSet(results)))
 	required_duration := durMs * taskCount / concurrency * 2
 	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
 }

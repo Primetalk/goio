@@ -42,14 +42,6 @@ func TestFlatten(t *testing.T) {
 	assert.Equal(t, float32(55+55*2), slice.Sum(floats))
 }
 
-func TestSet(t *testing.T) {
-	intsDuplicated := slice.FlatMap(nats10Values, func(i int) []int {
-		return slice.Map(nats10Values, func(j int) int { return i + j })
-	})
-	intsSet := slice.ToSet(intsDuplicated)
-	assert.Equal(t, 19, slice.SetSize(intsSet))
-}
-
 func TestGroupBy(t *testing.T) {
 	intsDuplicated := slice.FlatMap(nats10Values, func(i int) []int {
 		return slice.Map(nats10Values, func(j int) int { return i + j })
