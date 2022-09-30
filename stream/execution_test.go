@@ -17,8 +17,7 @@ func TestForEach(t *testing.T) {
 	forEachIO := stream.ForEach(stream.Take(powers2, 5), func(i int) {
 		is = append(is, i)
 	})
-	_, err := io.UnsafeRunSync(forEachIO)
-	assert.NoError(t, err)
+	UnsafeIO(t, forEachIO)
 	assert.ElementsMatch(t, []int{2, 4, 8, 16, 32}, is)
 }
 
@@ -31,8 +30,7 @@ func TestPartition(t *testing.T) {
 			return stream.Head(stream.Map(stream.Sum(odd), fun.ToString[int]))
 		},
 	)
-	res, err := io.UnsafeRunSync(cdIO)
-	assert.NoError(t, err)
+	res := UnsafeIO(t, cdIO)
 	assert.Equal(t, fun.NewPair(30, "25"), res)
 }
 

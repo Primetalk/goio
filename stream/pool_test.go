@@ -1,7 +1,6 @@
 package stream_test
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -29,8 +28,7 @@ func TestPool(t *testing.T) {
 	resultsIO := stream.ToSlice(resultStream)
 
 	start := time.Now()
-	results, err := io.UnsafeRunSync(resultsIO)
-	assert.NoError(t, err)
+	results := UnsafeIO(t, resultsIO)
 	assert.Equal(t, 100, set.SetSize(slice.ToSet(results)))
 	assert.WithinDuration(t, start, time.Now(), 200*time.Millisecond)
 }
@@ -52,33 +50,24 @@ func TestExecutionContext(t *testing.T) {
 	resultsIO := stream.ToSlice(sleepResults)
 
 	start := time.Now()
-	results, err := io.UnsafeRunSync(resultsIO)
-	assert.NoError(t, err)
+	results := UnsafeIO(t, resultsIO)
 	assert.Equal(t, taskCount, set.SetSize(slice.ToSet(results)))
 	required_duration := 10*taskCount/concurrency + 50
 	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
 }
 
 func TestFailedStreamThroughEC(t *testing.T) {
-	expectedError := errors.New("expected error")
-	failedStream := stream.Eval(io.Fail[io.IO[int]](expectedError))
+	failedStream := stream.Eval(io.Fail[io.IO[int]](errExpected))
 	bec := io.BoundedExecutionContext(10, 0)
 	throu := stream.ThroughExecutionContext(failedStream, bec, 10)
-	_, err1 := io.UnsafeRunSync(stream.DrainAll(throu))
-	if assert.Error(t, err1) {
-		assert.Equal(t, expectedError, err1)
-	}
+	UnsafeIOExpectError(t, errExpected, stream.DrainAll(throu))
 }
 
 func TestFailedDataStreamThroughEC(t *testing.T) {
-	expectedError := errors.New("expected error")
-	failedStream := stream.Lift(io.Fail[int](expectedError))
+	failedStream := stream.Lift(io.Fail[int](errExpected))
 	bec := io.BoundedExecutionContext(10, 0)
 	throu := stream.ThroughExecutionContext(failedStream, bec, 10)
-	_, err1 := io.UnsafeRunSync(stream.DrainAll(throu))
-	if assert.Error(t, err1) {
-		assert.Equal(t, expectedError, err1)
-	}
+	UnsafeIOExpectError(t, errExpected, stream.DrainAll(throu))
 }
 
 func TestThroughExecutionContextUnordered(t *testing.T) {
@@ -103,4 +92,11 @@ func TestThroughExecutionContextUnordered(t *testing.T) {
 	assert.Equal(t, taskCount, set.SetSize(slice.ToSet(results)))
 	required_duration := durMs * taskCount / concurrency * 2
 	assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
+}
+
+func TestFailedDataStreamThroughECUnord(t *testing.T) {
+	failedStream := stream.Lift(io.Fail[int](errExpected))
+	bec := io.BoundedExecutionContext(10, 0)
+	throu := stream.ThroughExecutionContextUnordered(failedStream, bec, 10)
+	UnsafeIOExpectError(t, errExpected, stream.DrainAll(throu))
 }
