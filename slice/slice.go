@@ -1,7 +1,11 @@
 // Package slice provides common utility functions to Go slices.
 package slice
 
-import "github.com/primetalk/goio/option"
+import (
+	"github.com/primetalk/goio/maps"
+	"github.com/primetalk/goio/option"
+	"github.com/primetalk/goio/set"
+)
 
 // Map converts all values of a slice using the provided function.
 func Map[A any, B any](as []A, f func(A) B) (bs []B) {
@@ -85,21 +89,13 @@ func AppendAll[A any](ass ...[]A) (aas []A) {
 	return Flatten(ass)
 }
 
-// Set is a way to represent sets in Go.
-type Set[A comparable] map[A]struct{}
-
 // ToSet converts a slice to a set.
-func ToSet[A comparable](as []A) (s Set[A]) {
+func ToSet[A comparable](as []A) (s set.Set[A]) {
 	s = make(map[A]struct{}, len(as))
 	for _, a := range as {
 		s[a] = struct{}{}
 	}
 	return
-}
-
-// SetSize returns the size of the set.
-func SetSize[A comparable](s Set[A]) int {
-	return len(s)
 }
 
 // GroupBy groups elements by a function that returns a key.
@@ -121,7 +117,7 @@ func GroupBy[A any, K comparable](as []A, f func(A) K) (res map[K][]A) {
 // GroupByMap is a convenience function that groups and then maps the subslices.
 func GroupByMap[A any, K comparable, B any](as []A, f func(A) K, g func([]A) B) (res map[K]B) {
 	intermediate := GroupBy(as, f)
-	return MapValues(intermediate, g)
+	return maps.MapValues(intermediate, g)
 }
 
 // GroupByMapCount for each key counts how often it is seen.
@@ -153,15 +149,6 @@ func Sliding[A any](as []A, size int, step int) (res [][]A) {
 // Last partition might be smaller.
 func Grouped[A any](as []A, size int) (res [][]A) {
 	return Sliding(as, size, size)
-}
-
-// MapValues converts values in the map using the provided function.
-func MapValues[K comparable, A any, B any](m map[K]A, f func(A) B) (res map[K]B) {
-	res = make(map[K]B, len(m))
-	for k, a := range m {
-		res[k] = f(a)
-	}
-	return
 }
 
 // Len returns the length of the slice.

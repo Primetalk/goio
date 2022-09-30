@@ -1,6 +1,6 @@
 package maps
 
-// Keys returns keys of the map
+// Keys returns keys of the map.
 func Keys[K comparable, V any](m map[K]V) (keys []K) {
 	for k := range m {
 		keys = append(keys, k)
@@ -36,6 +36,15 @@ func MapKeys[K1 comparable, V any, K2 comparable](m1 map[K1]V, f func(K1) K2, co
 			v = combine(v2, v)
 		}
 		m2[k2] = v
+	}
+	return
+}
+
+// MapValues converts values in the map using the provided function.
+func MapValues[K comparable, A any, B any](m map[K]A, f func(A) B) (res map[K]B) {
+	res = make(map[K]B, len(m))
+	for k, a := range m {
+		res[k] = f(a)
 	}
 	return
 }
