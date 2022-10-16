@@ -12,3 +12,8 @@ func TestPairBoth(t *testing.T) {
 	assert.Equal(t, 1, one)
 	assert.Equal(t, "A", a)
 }
+
+func TestPairSwap(t *testing.T) {
+	sw := fun.PairSwap(fun.NewPair(1, "A"))
+	assert.Equal(t, fun.NewPair("A", 1), sw)
+}
