@@ -263,18 +263,10 @@ func IndexOf[A comparable](as []A, a A) int {
 
 // Take returns at most n elements.
 func Take[A any](as []A, n int) []A {
-	if len(as) <= n {
-		return as
-	} else {
-		return as[:n]
-	}
+	return as[:fun.Min(n, len(as))]
 }
 
 // Drop removes initial n elements.
 func Drop[A any](as []A, n int) []A {
-	if len(as) <= n {
-		return []A{}
-	} else {
-		return as[n:]
-	}
+	return as[fun.Min(n, len(as)):]
 }
