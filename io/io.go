@@ -157,6 +157,13 @@ func Lift[A any](a A) IO[A] {
 	return LiftPair(a, nil)
 }
 
+// LiftFunc wraps the result of function into IO.
+func LiftFunc[A any, B any](f func(A) B) func(A) IO[B] {
+	return func(a A) IO[B] {
+		return Lift(f(a))
+	}
+}
+
 // Fail[A] constructs an IO[A] that fails with the given error.
 func Fail[A any](err error) IO[A] {
 	var a A

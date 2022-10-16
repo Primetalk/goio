@@ -80,3 +80,10 @@ func FromSideEffectfulFunction[A any](f func() (A, error)) Stream[A] {
 func FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A] {
 	return Stream[A](iosr)
 }
+
+// Nats returns an infinite stream of ints starting from 1.
+func Nats() Stream[int] {
+	return Unfold(0, func(s int) int {
+		return s + 1
+	})
+}

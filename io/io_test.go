@@ -1,7 +1,6 @@
 package io_test
 
 import (
-	"log"
 	"testing"
 
 	"github.com/primetalk/goio/fun"
@@ -17,19 +16,22 @@ func TestIO(t *testing.T) {
 			return i + j, nil
 		})
 	})
-	res, err := io.UnsafeRunSync(io30)
-	assert.Equal(t, err, nil)
-	assert.Equal(t, res, 30)
+	res := UnsafeIO(t, io30)
+	assert.Equal(t, 30, res)
+}
+
+func TestLiftFunc(t *testing.T) {
+	f := io.LiftFunc(inc)
+	assert.Equal(t, 11, UnsafeIO(t, f(10)))
 }
 
 func TestErr(t *testing.T) {
 	var ptr *string = nil
 	ptrio := io.Lift(ptr)
 	uptr := io.FlatMap(ptrio, io.Unptr[string])
-	_, err := io.UnsafeRunSync(uptr)
-	assert.Equal(t, io.ErrorNPE, err)
+	UnsafeIOExpectError(t, io.ErrorNPE, uptr)
 	wrappedUptr := io.Wrapf(uptr, "my message %d", 10)
-	_, err = io.UnsafeRunSync(wrappedUptr)
+	_, err := io.UnsafeRunSync(wrappedUptr)
 	assert.Equal(t, "my message 10: nil pointer", err.Error())
 }
 
@@ -40,28 +42,15 @@ func TestFinally(t *testing.T) {
 	oe := io.OnError(fin, func(err error) io.IO[fun.Unit] {
 		return io.FromPureEffect(func() { onErrorExecuted = true })
 	})
-	_, err := io.UnsafeRunSync(oe)
-	assert.Error(t, err, errorMessage)
+	UnsafeIOExpectError(t, errExpected, oe)
 	assert.True(t, finalizerExecuted)
 	assert.True(t, onErrorExecuted)
-}
-
-func Nats(count int) (ios []io.IO[int]) {
-	for i := 0; i < count; i += 1 {
-		j := i
-		ios = append(ios, io.Pure(func() int {
-			log.Printf("executing %v\n", j)
-			return j
-		}))
-	}
-	return
 }
 
 func TestSequence(t *testing.T) {
 	ios := Nats(10)
 	for i, io1 := range ios {
-		res, err := io.UnsafeRunSync(io1)
-		assert.NoError(t, err)
+		res := UnsafeIO(t, io1)
 		assert.Equal(t, i, res)
 	}
 	ioseq := io.Sequence(ios)

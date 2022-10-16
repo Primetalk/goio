@@ -10,9 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var nats = stream.Unfold(0, func(s int) int {
-	return s + 1
-})
+var nats = stream.Nats()
 var nats10 = stream.Take(nats, 10)
 var nats10Values = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
@@ -40,4 +38,8 @@ func UnsafeIOExpectError[A any](t *testing.T, expected error, ioa io.IO[A]) {
 	if assert.Error(t, err1) {
 		assert.Equal(t, expected, err1)
 	}
+}
+
+func TestNats(t *testing.T) {
+	assert.ElementsMatch(t, nats10Values, UnsafeStreamToSlice(t, nats10))
 }

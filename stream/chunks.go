@@ -5,15 +5,20 @@ import (
 	"github.com/primetalk/goio/io"
 )
 
+// ChunkN groups elements by n and produces a stream of slices.
+func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
+	return ToChunks[A](n)
+}
+
 // ToChunks collects incoming elements in chunks of the given size.
 func ToChunks[A any](size int) func(stm Stream[A]) Stream[[]A] {
 	return func(stm Stream[A]) Stream[[]A] {
-		return StateFlatMapWithFinish(stm, []A{},
+		return StateFlatMapWithFinish(stm, make([]A, 0, size),
 			func(a A, as []A) io.IO[fun.Pair[[]A, Stream[[]A]]] {
 				return io.Pure(func() fun.Pair[[]A, Stream[[]A]] {
 					as2 := append(as, a)
-					if len(as) >= size {
-						return fun.NewPair([]A{}, Lift(as2))
+					if len(as2) >= size {
+						return fun.NewPair(make([]A, 0, size), Lift(as2))
 					} else {
 						return fun.NewPair(as2, Empty[[]A]())
 					}

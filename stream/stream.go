@@ -309,7 +309,7 @@ func FilterNot[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 }
 
 // Sum is a pipe that returns a stream of 1 element that is sum of all elements of the original stream.
-func Sum[A slice.Number](sa Stream[A]) Stream[A] {
+func Sum[A fun.Number](sa Stream[A]) Stream[A] {
 	var zero A
 	return StateFlatMapWithFinish(sa, zero,
 		func(a A, s A) io.IO[fun.Pair[A, Stream[A]]] {
@@ -323,24 +323,6 @@ func Sum[A slice.Number](sa Stream[A]) Stream[A] {
 // Len is a pipe that returns a stream of 1 element that is the count of elements of the original stream.
 func Len[A any](sa Stream[A]) Stream[int] {
 	return Sum(Map(sa, fun.Const[A](1)))
-}
-
-// ChunkN groups elements by n and produces a stream of slices.
-func ChunkN[A any](n int) func(sa Stream[A]) Stream[[]A] {
-	return func(sa Stream[A]) Stream[[]A] {
-		return StateFlatMapWithFinish(sa, make([]A, 0, n),
-			func(a A, as []A) io.IO[fun.Pair[[]A, Stream[[]A]]] {
-				if len(as) == n-1 {
-					return io.Lift(fun.NewPair(make([]A, 0, n), Lift(append(as, a))))
-				} else {
-					return io.Lift(fun.NewPair(append(as, a), Empty[[]A]()))
-				}
-			},
-			func(as []A) Stream[[]A] {
-				return Lift(as)
-			},
-		)
-	}
 }
 
 // Fail returns a stream that fails immediately.

@@ -2,6 +2,7 @@
 package slice
 
 import (
+	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/maps"
 	"github.com/primetalk/goio/option"
 	"github.com/primetalk/goio/set"
@@ -35,11 +36,14 @@ func FoldLeft[A any, B any](as []A, zero B, f func(B, A) B) (res B) {
 	return
 }
 
-// Predicate is a function with a boolean result type.
-type Predicate[A any] func(A) bool
+// Reduce aggregates all elements pairwise.
+// Only works for non empty slices.
+func Reduce[A any](as []A, f func(A, A) A) A {
+	return FoldLeft(as[1:], as[0], f)
+}
 
 // Filter filters slice values.
-func Filter[A any](as []A, p Predicate[A]) (res []A) {
+func Filter[A any](as []A, p fun.Predicate[A]) (res []A) {
 	res = make([]A, 0, len(as))
 	for _, a := range as {
 		if p(a) {
@@ -50,7 +54,7 @@ func Filter[A any](as []A, p Predicate[A]) (res []A) {
 }
 
 // FilterNot filters slice values inverting the condition.
-func FilterNot[A any](as []A, p Predicate[A]) (res []A) {
+func FilterNot[A any](as []A, p fun.Predicate[A]) (res []A) {
 	res = make([]A, 0, len(as))
 	for _, a := range as {
 		if !p(a) {
@@ -60,8 +64,22 @@ func FilterNot[A any](as []A, p Predicate[A]) (res []A) {
 	return
 }
 
+// Partition separates elements in as according to the predicate.
+func Partition[A any](as []A, p fun.Predicate[A]) (resT []A, resF []A) {
+	resT = make([]A, 0, len(as))
+	resF = make([]A, 0, len(as))
+	for _, a := range as {
+		if p(a) {
+			resT = append(resT, a)
+		} else {
+			resF = append(resF, a)
+		}
+	}
+	return
+}
+
 // Count counts the number of elements that satisfy the given predicate.
-func Count[A any](as []A, predicate Predicate[A]) (cnt int) {
+func Count[A any](as []A, predicate fun.Predicate[A]) (cnt int) {
 	cnt = 0
 	for _, a := range as {
 		if predicate(a) {
@@ -172,7 +190,7 @@ func Collect[A any, B any](as []A, f func(a A) option.Option[B]) (bs []B) {
 // Exists returns a predicate on slices.
 // The predicate is true if there is an element that satisfy the given element-wise predicate.
 // It's false for an empty slice.
-func Exists[A any](p Predicate[A]) Predicate[[]A] {
+func Exists[A any](p fun.Predicate[A]) fun.Predicate[[]A] {
 	return func(as []A) (res bool) {
 		res = false
 		for _, a := range as {
@@ -188,7 +206,7 @@ func Exists[A any](p Predicate[A]) Predicate[[]A] {
 // Forall returns a predicate on slices.
 // The predicate is true if all elements satisfy the given element-wise predicate.
 // It's true for an empty slice.
-func Forall[A any](p Predicate[A]) Predicate[[]A] {
+func Forall[A any](p fun.Predicate[A]) fun.Predicate[[]A] {
 	return func(as []A) (res bool) {
 		res = true
 		for _, a := range as {
@@ -199,4 +217,56 @@ func Forall[A any](p Predicate[A]) Predicate[[]A] {
 		}
 		return
 	}
+}
+
+// ForEach executes the given function for each element of the slice.
+func ForEach[A any](as []A, f func(a A)) {
+	for _, a := range as {
+		f(a)
+	}
+}
+
+// ZipWith returns a slice of pairs made of elements of the two slices.
+// The length of the result is min of both.
+func ZipWith[A any, B any](as []A, bs []B) (res []fun.Pair[A, B]) {
+	l := len(as)
+	lb := len(bs)
+	if lb < l {
+		l = lb
+	}
+	res = make([]fun.Pair[A, B], l)
+	for i := 0; i < l; i++ {
+		res[i] = fun.NewPair(as[i], bs[i])
+	}
+	return
+}
+
+// ZipWithIndex prepends the index to each element.
+func ZipWithIndex[A any](as []A) (res []fun.Pair[int, A]) {
+	res = make([]fun.Pair[int, A], len(as))
+	for i, a := range as {
+		res[i] = fun.NewPair(i, a)
+	}
+	return
+}
+
+// IndexOf returns the index of the first occurrence of a in the slice
+// or -1 if not found.
+func IndexOf[A comparable](as []A, a A) int {
+	for i, a1 := range as {
+		if a == a1 {
+			return i
+		}
+	}
+	return -1
+}
+
+// Take returns at most n elements.
+func Take[A any](as []A, n int) []A {
+	return as[:fun.Min(n, len(as))]
+}
+
+// Drop removes initial n elements.
+func Drop[A any](as []A, n int) []A {
+	return as[fun.Min(n, len(as)):]
 }

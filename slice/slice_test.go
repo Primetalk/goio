@@ -18,8 +18,11 @@ func IsPositive(i int) bool {
 func IsNegative(i int) bool {
 	return i < 0
 }
+func add(i, j int) int {
+	return i + j
+}
 
-var nats10Values = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+var nats10Values = slice.Nats(10)
 
 func TestFilter(t *testing.T) {
 	sumEven := slice.Sum(slice.Filter(nats10Values, IsEven))
@@ -32,6 +35,10 @@ func TestFilter(t *testing.T) {
 	assert.False(t, slice.Forall(IsEven)(nats10Values))
 	assert.True(t, slice.Forall(IsPositive)(nats10Values))
 	assert.False(t, slice.Forall(IsNegative)(nats10Values))
+
+	even, odd := slice.Partition(nats10Values, IsEven)
+	assert.Equal(t, sumOdd, slice.Sum(odd))
+	assert.Equal(t, sumEven, slice.Sum(even))
 }
 
 func TestFlatten(t *testing.T) {
@@ -74,4 +81,32 @@ func TestGroupByMapCount(t *testing.T) {
 func TestCount(t *testing.T) {
 	cntEven := slice.Count(nats10Values, IsEven)
 	assert.Equal(t, 5, cntEven)
+}
+
+func TestReduce(t *testing.T) {
+	assert.Equal(t, 55,
+		slice.Reduce(slice.Nats(10), add),
+	)
+}
+
+func TestZipWithIndex(t *testing.T) {
+	znats20 := slice.Range(0, 19)
+	nats10 := slice.Drop(znats20, 10)
+	p1 := slice.ZipWithIndex(nats10)
+	p2 := slice.ZipWith(nats10, slice.Take(znats20, 10))
+	assert.Equal(t, fun.NewPair(0, 10), p1[0])
+	assert.ElementsMatch(t, p1, slice.Map(p2, fun.PairSwap[int, int]))
+}
+
+func TestForEach(t *testing.T) {
+	s := 0
+	slice.ForEach(slice.Nats(10), func(i int) {
+		s += i
+	})
+	assert.Equal(t, 55, s)
+}
+
+func TestIndexOf(t *testing.T) {
+	assert.Equal(t, 4, slice.IndexOf(nats10Values, 5))
+	assert.Equal(t, -1, slice.IndexOf(nats10Values, 11))
 }

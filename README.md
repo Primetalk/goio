@@ -30,6 +30,8 @@ There are also basic data structures - Unit, Pair and Either.
 - `fun.Pair[A any, B any]` - type that represents both A and B.
 - `fun.PairV1[A any, B any](p Pair[A, B]) A` - PairV1 returns the first element of the pair.
 - `fun.PairV2[A any, B any](p Pair[A, B]) B` - PairV2 returns the second element of the pair.
+- `fun.PairBoth[A any, B any](p Pair[A, B]) (A, B)` - PairBoth returns both parts of the pair.
+- `fun.PairSwap[A any, B any](p Pair[A, B]) Pair[B, A]` - PairSwap returns a pair with swapped parts.
 
 For debug purposes it's useful to convert arbitrary data to strings.
 
@@ -44,6 +46,17 @@ For compatibility with `interface {}`:
 Is there a way to obtain a value of an arbitrary type?
 
 - `fun.Nothing[A any]() A` - This function can be used anywhere where type `A` is needed. It'll always fail if invoked at runtime.
+
+### Predicates
+
+Predicate is a function with a boolean result type.
+
+```go
+type Predicate[A any] func(A) bool
+```
+
+- `fun.IsEqualTo[A comparable](a A) Predicate[A]` - IsEqualTo compares two arguments for equality.
+- `fun.Not[A any](p Predicate[A]) Predicate[A]` - Not negates the given predicate.
 
 ## Option
 
@@ -123,6 +136,7 @@ Unfortunately all these nice and desired properties break when there are so call
 To construct an IO one may use the following functions:
 
 - `io.Lift[A any](a A) IO[A]` - lifts a plain value to IO
+- `io.LiftFunc[A any, B any](f func(A) B) func(A) IO[B]` - LiftFunc wraps the result of function into IO.
 - `io.Fail[A any](err error) IO[A]` - lifts an error to IO
 - `io.FromConstantGoResult[A any](gr GoResult[A]) IO[A]` - FromConstantGoResult converts an existing GoResult value into an IO. Important! This is not for normal delayed IO execution. It cannot provide any guarantee for the moment when this go result was evaluated in the first place. This is just a combination of Lift and Fail.
 - `io.Eval[A any](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
@@ -150,6 +164,7 @@ The following functions could be used to manipulate computations:
 - `io.Wrapf[A any](io IO[A], format string, args...interface{}) IO[A]` - wraps an error with additional context information
 - `io.Finally[A any](io IO[A], finalizer IO[fun.Unit]) IO[A]` - Finally runs the finalizer regardless of the success of the IO. In case finalizer fails as well, the second error is printed to log.
 - `io.Ignore[A any](ioa IO[A]) IOUnit` - Ignore throws away the result of IO.
+- `io.MapSlice[A any, B any](ioas IO[[]A], f func(a A) B) IO[[]B]` - MapSlice converts each element of the slice inside IO[[]A] using the provided function that cannot fail.
 
 To and from `GoResult` - allows to handle both good value and an error:
 
@@ -309,6 +324,7 @@ The following functions could be used to create a new stream:
 - `stream.Eval[A any](ioa io.IO[A]) Stream[A]` - Eval returns a stream of one value that is the result of IO.
 - `stream.Fail[A any](err error) Stream[A]` - Fail returns a stream that fails immediately.
 - `stream.Wrapf[A any](stm Stream[A], format string, args ...interface{}) Stream[A]` - Wrapf wraps errors produced by this stream with additional context info.
+- `stream.Nats() Stream[int]` - Nats returns an infinite stream of ints starting from 1.
 
 ### Manipulation
 
@@ -322,6 +338,7 @@ Typical manipulations with a stream includes `Map`, `FlatMap`, `Filter` and some
 - `stream.Filter[A any](stm Stream[A], f func(A)bool) Stream[A]`
 - `stream.FilterNot[A any](stm Stream[A], f func(A)bool) Stream[A]`
 - `stream.Flatten[A any](stm Stream[Stream[A]]) Stream[A]` - Flatten simplifies a stream of streams to just the stream of values by concatenating all inner streams.
+- `stream.ZipWithIndex[A any](as Stream[A]) Stream[fun.Pair[int, A]]` - ZipWithIndex prepends the index to each element.
 
 Important functions that allow to implement stateful stream transformation:
 
@@ -442,13 +459,15 @@ Some utilities that are convenient when working with slices.
 
 - `slice.Map[A any, B any](as []A, f func(A)B)(bs []B)`
 - `slice.FlatMap[A any, B any](as []A, f func(A)[]B)(bs []B)`
-- `slice.FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)`
+- `slice.FoldLeft[A any, B any](as []A, zero B, f func(B, A)B) (res B)` - FoldLeft folds all values in the slice using the combination function.
+- `slice.Reduce[A any](as []A, f func(A, A) A) A` - Reduce aggregates all elements pairwise. Only works for non empty slices.
 - `slice.Filter[A any](as []A, p func(a A) bool) (res []A)`
 - `slice.FilterNot[A any](as []A, p func(a A) bool) (res []A)` - same as `Filter`, but inverses the predicate `p`.
-- `slice.Exists[A any](p Predicate[A]) Predicate[[]A]` - Exists returns a predicate on slices. The predicate is true if there is an element that satisfy the given element-wise predicate. It's false for an empty slice.
-- `slice.Forall[A any](p Predicate[A]) Predicate[[]A]` - Forall returns a predicate on slices. The predicate is true if all elements satisfy the given element-wise predicate. It's true for an empty slice.
+- `slice.Partition[A any](as []A, p fun.Predicate[A]) (resT []A, resF []A)` - Partition separates elements in as according to the predicate.
+- `slice.Exists[A any](p fun.Predicate[A]) fun.Predicate[[]A]` - Exists returns a predicate on slices. The predicate is true if there is an element that satisfy the given element-wise predicate. It's false for an empty slice.
+- `slice.Forall[A any](p fun.Predicate[A]) fun.Predicate[[]A]` - Forall returns a predicate on slices. The predicate is true if all elements satisfy the given element-wise predicate. It's true for an empty slice.
 - `slice.Collect[A any, B any](as []A, f func(a A) option.Option[B]) (bs []B)` - Collect runs through the slice, executes the given function and only keeps good returned values.
-- `slice.Count[A any](as []A, predicate Predicate[A]) (cnt int)` - Count counts the number of elements that satisfy the given predicate.
+- `slice.Count[A any](as []A, predicate fun.Predicate[A]) (cnt int)` - Count counts the number of elements that satisfy the given predicate.
 - `slice.Flatten[A any](ass [][]A)(aas[]A)`
 - `slice.AppendAll[A any](ass ...[]A) (aas []A)` - AppendAll concatenates all slices.
 - `slice.GroupBy[A any, K comparable](as []A, f func(A)K) (res map[K][]A)` - GroupBy groups elements by a function that returns a key.
@@ -457,6 +476,12 @@ Some utilities that are convenient when working with slices.
 - `slice.Sliding[A any](as []A, size int, step int) (res [][]A)` - Sliding splits the provided slice into windows.  Each window will have the given size.  The first window starts from offset = 0. Each consequtive window starts at prev_offset + step. Last window might very well be shorter.
 - `slice.Grouped[A any](as []A, size int) (res [][]A)` - Grouped partitions the slice into groups of the given size. Last partition might be smaller.
 - `slice.Len[A any](as []A) int` Len returns the length of the slice. This is a normal function that can be passed around unlike the built-in `len`.
+- `slice.ForEach[A any](as []A, f func(a A) )` - ForEach executes the given function for each element of the slice.
+- `slice.ZipWith[A any, B any](as []A, bs []B) (res []fun.Pair[A, B])` - ZipWith returns a slice of pairs made of elements of the two slices. The length of the result is min of both.
+- `slice.ZipWithIndex[A any](as []A) (res []fun.Pair[int, A])` - ZipWithIndex prepends the index to each element.
+- `slice.IndexOf[A comparable](as []A, a A) int` - IndexOf returns the index of the first occurrence of a in the slice or -1 if not found.
+- `slice.Take[A any](as []A, n int) []A` - Take returns at most n elements.
+- `slice.Drop[A any](as []A, n int) []A` - Drop removes initial n elements. 
 
 We can convert a slice to a set:
 
@@ -475,7 +500,7 @@ And we can perform some operations with sets:
 
 ### Slices of numbers
 
-Numbers support numerical operations. In generics this require defining an interface:
+Numbers support numerical operations. In generics this require defining an interface (in `fun` package):
 
 ```go
 // Number is a generic number interface that covers all Go number types.
@@ -489,7 +514,9 @@ type Number interface {
 
 Having this definition we now can aggregate slices of numbers:
  
-- `slice.Sum[N Number](ns []N) (sum N)` - sums numbers.
+- `slice.Sum[N fun.Number](ns []N) (sum N)` - sums numbers.
+- `slice.Range(from, to int) (res []int)` - Range starts at `from` and progresses until `to` exclusive.
+- `slice.Nats(n int) []int` - Nats return slice `[]int{1, 2, ..., n}`.
 
 ## Maps utilities
 
