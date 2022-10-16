@@ -500,7 +500,7 @@ And we can perform some operations with sets:
 
 ### Slices of numbers
 
-Numbers support numerical operations. In generics this require defining an interface:
+Numbers support numerical operations. In generics this require defining an interface (in `fun` package):
 
 ```go
 // Number is a generic number interface that covers all Go number types.
@@ -514,7 +514,7 @@ type Number interface {
 
 Having this definition we now can aggregate slices of numbers:
  
-- `slice.Sum[N Number](ns []N) (sum N)` - sums numbers.
+- `slice.Sum[N fun.Number](ns []N) (sum N)` - sums numbers.
 - `slice.Range(from, to int) (res []int)` - Range starts at `from` and progresses until `to` exclusive.
 - `slice.Nats(n int) []int` - Nats return slice `[]int{1, 2, ..., n}`.
 

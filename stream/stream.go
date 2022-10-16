@@ -309,7 +309,7 @@ func FilterNot[A any](stm Stream[A], predicate func(A) bool) Stream[A] {
 }
 
 // Sum is a pipe that returns a stream of 1 element that is sum of all elements of the original stream.
-func Sum[A slice.Number](sa Stream[A]) Stream[A] {
+func Sum[A fun.Number](sa Stream[A]) Stream[A] {
 	var zero A
 	return StateFlatMapWithFinish(sa, zero,
 		func(a A, s A) io.IO[fun.Pair[A, Stream[A]]] {
