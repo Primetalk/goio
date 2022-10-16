@@ -105,3 +105,8 @@ func TestForEach(t *testing.T) {
 	})
 	assert.Equal(t, 55, s)
 }
+
+func TestIndexOf(t *testing.T) {
+	assert.Equal(t, 4, slice.IndexOf(nats10Values, 5))
+	assert.Equal(t, -1, slice.IndexOf(nats10Values, 11))
+}
