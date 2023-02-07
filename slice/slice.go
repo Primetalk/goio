@@ -2,6 +2,8 @@
 package slice
 
 import (
+	"errors"
+
 	"github.com/primetalk/goio/fun"
 	"github.com/primetalk/goio/maps"
 	"github.com/primetalk/goio/option"
@@ -297,4 +299,30 @@ func Intersection[A comparable](as []A, as2 []A) (res []A) {
 func Union[A comparable](as []A, as2 []A) (res []A) {
 	sr := ToSet(as)
 	return append(as, FilterNot(as2, set.Contains(sr))...)
+}
+
+// ErrHeadOfEmptySlice is thrown when there's an attempt to take head of an empty slice.
+var ErrHeadOfEmptySlice = errors.New("head of empty slice")
+
+// HeadTail returns head, tail.
+// panics with ErrHeadOfEmptySlice when slice is empty.
+func HeadTail[A any](as []A) (A, []A) {
+	switch len(as) {
+	case 0:
+		panic(ErrHeadOfEmptySlice)
+	default:
+		return as[0], as[1:]
+	}
+}
+
+// Head returns head of the slice.
+// panics with ErrHeadOfEmptySlice when slice is empty.
+func Head[A any](as []A) (a A) {
+	a, _ = HeadTail(as)
+	return
+}
+
+// Tail returns tail of the slice.
+func Tail[A any](as []A) []A {
+	return Drop(as, 1)
 }
