@@ -133,3 +133,10 @@ func TestIntersection(t *testing.T) {
 	znats5 := slice.Range(5, 10)
 	assert.ElementsMatch(t, znats5, slice.Intersection(znats10, znats515))
 }
+
+func TestUnion(t *testing.T) {
+	znats10 := slice.Range(0, 10)
+	znats515 := slice.Range(5, 15)
+	znats15 := slice.Range(0, 15)
+	assert.ElementsMatch(t, znats15, slice.Union(znats10, znats515))
+}
