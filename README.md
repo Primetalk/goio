@@ -482,6 +482,7 @@ Some utilities that are convenient when working with slices.
 - `slice.IndexOf[A comparable](as []A, a A) int` - IndexOf returns the index of the first occurrence of a in the slice or -1 if not found.
 - `slice.Take[A any](as []A, n int) []A` - Take returns at most n elements.
 - `slice.Drop[A any](as []A, n int) []A` - Drop removes initial n elements. 
+- `slice.Reverse[A any](as []A) (res []A)` - Reverse creates a new slice with elements reversed.
 
 We can convert a slice to a set:
 
