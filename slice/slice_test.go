@@ -119,3 +119,10 @@ func TestReverse(t *testing.T) {
 	znats2 := slice.Range(0, 2)
 	assert.ElementsMatch(t, []int{1, 0}, slice.Reverse(znats2))
 }
+
+func TestRemove(t *testing.T) {
+	znats10 := slice.Range(0, 10)
+	znats5 := slice.Range(0, 5)
+	znats510 := slice.Range(5, 10)
+	assert.ElementsMatch(t, znats510, slice.Remove(znats10, znats5))
+}
