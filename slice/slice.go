@@ -280,3 +280,9 @@ func Reverse[A any](as []A) (res []A) {
 	}
 	return
 }
+
+// Remove removes any elements in r from as.
+func Remove[A comparable](as []A, r []A) (res []A) {
+	sr := ToSet(r)
+	return FilterNot(as, set.Contains(sr))
+}

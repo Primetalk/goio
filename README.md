@@ -468,6 +468,7 @@ Some utilities that are convenient when working with slices.
 - `slice.Reduce[A any](as []A, f func(A, A) A) A` - Reduce aggregates all elements pairwise. Only works for non empty slices.
 - `slice.Filter[A any](as []A, p func(a A) bool) (res []A)`
 - `slice.FilterNot[A any](as []A, p func(a A) bool) (res []A)` - same as `Filter`, but inverses the predicate `p`.
+- `slice.Remove[A comparable](as []A, r []A) (res []A)` - Remove removes any elements in r from as.
 - `slice.Partition[A any](as []A, p fun.Predicate[A]) (resT []A, resF []A)` - Partition separates elements in as according to the predicate.
 - `slice.Exists[A any](p fun.Predicate[A]) fun.Predicate[[]A]` - Exists returns a predicate on slices. The predicate is true if there is an element that satisfy the given element-wise predicate. It's false for an empty slice.
 - `slice.Forall[A any](p fun.Predicate[A]) fun.Predicate[[]A]` - Forall returns a predicate on slices. The predicate is true if all elements satisfy the given element-wise predicate. It's true for an empty slice.
