@@ -12,32 +12,37 @@ import (
 // influence the producer.
 // There is a back pressure channel.
 // Protocol:
-//  sender              |  receiver
-//  --------------------+------------------------------------
-//                      |   send "Ready to receive" to back channel
-//   read back          |   immediately start listening data.
-//   if ready           |
-//   send data          |   read data
-//                      |    start processing
-//                      |     the result of processing (ready-to-receive/finished/error)
-//   loop               |   LOOP.
-//                      |
-//                      |    on error after processing
-//                      |     send error to back
-//                      |    on processing complete
-//                      |     send finished to back
-//  when finishing:     |
-//   send finish signal | on receiving finish signal, stop the loop.
+//
+//	sender              |  receiver
+//	--------------------+------------------------------------
+//	                    |   send "Ready to receive" to back channel
+//	 read back          |   immediately start listening data.
+//	 if ready           |
+//	 send data          |   read data
+//	                    |    start processing
+//	                    |     the result of processing (ready-to-receive/finished/error)
+//	 loop               |   LOOP.
+//	                    |
+//	                    |    on error after processing
+//	                    |     send error to back
+//	                    |    on processing complete
+//	                    |     send finished to back
+//	when finishing:     |
+//	 send finish signal | on receiving finish signal, stop the loop.
+//
 // and read back        |
-//                      |
-//  when error:         |
-//   send error         | on receiving error, stop the loop.
+//
+//	                    |
+//	when error:         |
+//	 send error         | on receiving error, stop the loop.
+//
 // and read back        |
-//                      |
-//   if not ready,      |
-//   don't send data    |
-//   on back error - fail all
-//   on back finish - unsubscribe
+//
+//	                   |
+//	if not ready,      |
+//	don't send data    |
+//	on back error - fail all
+//	on back finish - unsubscribe
 type BackpressureChannel[A any] struct {
 	data chan StreamEvent[A]
 	back chan StreamEvent[fun.Unit]
