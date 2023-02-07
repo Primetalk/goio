@@ -270,3 +270,13 @@ func Take[A any](as []A, n int) []A {
 func Drop[A any](as []A, n int) []A {
 	return as[fun.Min(n, len(as)):]
 }
+
+// Reverse creates a new slice with elements reversed.
+func Reverse[A any](as []A) (res []A) {
+	l := len(as)
+	res = make([]A, l)
+	for i := 0; i < l; i++ {
+		res[i] = as[l-i-1]
+	}
+	return
+}

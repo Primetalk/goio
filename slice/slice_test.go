@@ -110,3 +110,12 @@ func TestIndexOf(t *testing.T) {
 	assert.Equal(t, 4, slice.IndexOf(nats10Values, 5))
 	assert.Equal(t, -1, slice.IndexOf(nats10Values, 11))
 }
+
+func TestReverse(t *testing.T) {
+	znats0 := slice.Range(0, 0)
+	assert.ElementsMatch(t, znats0, slice.Reverse(znats0))
+	znats1 := slice.Range(0, 1)
+	assert.ElementsMatch(t, znats1, slice.Reverse(znats1))
+	znats2 := slice.Range(0, 2)
+	assert.ElementsMatch(t, []int{1, 0}, slice.Reverse(znats2))
+}
