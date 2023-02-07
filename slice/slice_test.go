@@ -140,3 +140,28 @@ func TestUnion(t *testing.T) {
 	znats15 := slice.Range(0, 15)
 	assert.ElementsMatch(t, znats15, slice.Union(znats10, znats515))
 }
+
+func TestHeadTail(t *testing.T) {
+	znats5 := slice.Range(0, 5)
+	z, nats5 := slice.HeadTail(znats5)
+	assert.Equal(t, 0, z)
+	assert.ElementsMatch(t, slice.Range(1, 5), nats5)
+}
+
+func TestHeadTailPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r != slice.ErrHeadOfEmptySlice {
+			t.Errorf("expected panic ErrHeadOfEmptySlice")
+		}
+	}()
+	znats5 := slice.Range(0, 0)
+	slice.HeadTail(znats5)
+}
+
+func TestHeadAndTail(t *testing.T) {
+	znats5 := slice.Range(0, 5)
+	z := slice.Head(znats5)
+	nats5 := slice.Tail(znats5)
+	assert.Equal(t, 0, z)
+	assert.ElementsMatch(t, slice.Range(1, 5), nats5)
+}

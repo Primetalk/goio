@@ -491,6 +491,9 @@ Some utilities that are convenient when working with slices.
 - `slice.Take[A any](as []A, n int) []A` - Take returns at most n elements.
 - `slice.Drop[A any](as []A, n int) []A` - Drop removes initial n elements. 
 - `slice.Reverse[A any](as []A) (res []A)` - Reverse creates a new slice with elements reversed.
+- `slice.HeadTail[A any](as []A) (A, []A)` - HeadTail returns head, tail. Panics with ErrHeadOfEmptySlice when slice is empty.
+- `slice.Head[A any](as []A) (a A)` - Head returns head of the slice. Panics with `ErrHeadOfEmptySlice` when slice is empty.
+- `slice.Tail[A any](as []A) []A` - Tail returns tail of the slice.
 
 We can convert a slice to a set:
 
