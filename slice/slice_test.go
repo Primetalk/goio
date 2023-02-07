@@ -126,3 +126,10 @@ func TestRemove(t *testing.T) {
 	znats510 := slice.Range(5, 10)
 	assert.ElementsMatch(t, znats510, slice.Remove(znats10, znats5))
 }
+
+func TestIntersection(t *testing.T) {
+	znats10 := slice.Range(0, 10)
+	znats515 := slice.Range(5, 15)
+	znats5 := slice.Range(5, 10)
+	assert.ElementsMatch(t, znats5, slice.Intersection(znats10, znats515))
+}

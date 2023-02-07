@@ -286,3 +286,9 @@ func Remove[A comparable](as []A, r []A) (res []A) {
 	sr := ToSet(r)
 	return FilterNot(as, set.Contains(sr))
 }
+
+// Intersection leaves only elements that are both in as and as2.
+func Intersection[A comparable](as []A, as2 []A) (res []A) {
+	sr := ToSet(as2)
+	return Filter(as, set.Contains(sr))
+}
