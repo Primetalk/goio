@@ -18,8 +18,8 @@ type ResultOrContinuation[A any] struct {
 	Continuation *Continuation[A]
 }
 
-// MaxContinuationDepth is equal to 1000000000000. It's the maximum depth we run continuation before giving up.
-var MaxContinuationDepth = 1000000000000
+// MaxContinuationDepth is equal to 1000000000. It's the maximum depth we run continuation before giving up.
+var MaxContinuationDepth = 1000000000
 
 // ObtainResult executes continuation until final result is obtained.
 func ObtainResult[A any](c Continuation[A]) (res A, err error) {
