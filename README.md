@@ -22,6 +22,7 @@ This package provides a few general functions that are sometimes useful.
 - `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
 - `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`
 - `fun.Compose[A any, B any, C any](f func(A) B, g func (B) C) func (A) C` - Compose executes the given functions in sequence.
+- `fun.Memoize[A comparable, B any](f func(a A) B) func(A) B` - Memoize returns a function that will remember the original function in a map. It's thread safe, however, not super performant.
 
 There are also basic data structures - Unit, Pair and Either.
 
@@ -186,6 +187,10 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 - `io.UnsafeRunSync[A any](ioa IO[A])`
 - `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
 - `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
+
+### Auxiliary functions
+
+- `io.Memoize[A comparable, B any](f func(a A) IO[B]) func(A) IO[B]` - Memoize returns a function that will remember the original function in a map. It's thread safe, however, not super performant.
 
 ### Implementation details
 

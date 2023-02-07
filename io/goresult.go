@@ -20,3 +20,23 @@ func NewFailedGoResult[A any](err error) GoResult[A] {
 		Error: err,
 	}
 }
+
+// RunSync is the same as UnsafeRunSync but returns GoResult[A].
+func RunSync[A any](io IO[A]) GoResult[A] {
+	a, err := UnsafeRunSync(io)
+	return GoResult[A]{Value: a, Error: err}
+}
+
+// FromConstantGoResult converts an existing GoResult value into a fake IO.
+// NB! This is not for normal delayed IO execution!
+func FromConstantGoResult[A any](gr GoResult[A]) IO[A] {
+	return Eval(func() (A, error) { return gr.Value, gr.Error })
+}
+
+// IOFuncToGoResult converts a function that returns IO
+// to a function that will return GoResult.
+func IOFuncToGoResult[A any, B any](f func(a A) IO[B]) func(A) GoResult[B] {
+	return func(a A) GoResult[B] {
+		return RunSync(f(a))
+	}
+}
