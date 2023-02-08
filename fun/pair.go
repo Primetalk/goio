@@ -17,6 +17,11 @@ func PairV2[A any, B any](p Pair[A, B]) B { return p.V2 }
 
 // PairBoth returns both parts of the pair.
 func PairBoth[A any, B any](p Pair[A, B]) (A, B) {
+	return p.Both()
+}
+
+// Pair.Both returns both parts of the pair.
+func (p Pair[A, B]) Both() (A, B) {
 	return p.V1, p.V2
 }
 
