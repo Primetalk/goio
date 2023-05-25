@@ -165,3 +165,8 @@ func TestHeadAndTail(t *testing.T) {
 	assert.Equal(t, 0, z)
 	assert.ElementsMatch(t, slice.Range(1, 5), nats5)
 }
+
+func TestDistinct(t *testing.T) {
+	ints := []int{2, 2, 0, 1, 1, 5, 0, 2}
+	assert.ElementsMatch(t, slice.Distinct(ints), []int{2, 0, 1, 5})
+}
