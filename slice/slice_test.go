@@ -181,9 +181,17 @@ func TestIntersperse(t *testing.T) {
 }
 
 func TestBuildIndex(t *testing.T) {
-	strings := []string{"a", "four", "eleven"}
+	strings := []string{"a", "four", "eleven", "five"}
+	l := func(s string) int { return len(s) }
+	index := slice.BuildIndex(strings, l)
+	assert.ElementsMatch(t, []string{"a"}, index[1])
+	assert.ElementsMatch(t, []string{"four", "five"}, index[4])
+}
+
+func BuildUniqueIndex(t *testing.T) {
+	strings := []string{"a", "four", "eleven", "five"}
 	l := func(s string) int { return len(s) }
 	index := slice.BuildUniqueIndex(strings, l)
 	assert.Equal(t, "a", index[1])
-	assert.Equal(t, "four", index[4])
+	assert.Equal(t, "five", index[4])
 }
