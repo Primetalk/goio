@@ -188,7 +188,7 @@ func TestBuildIndex(t *testing.T) {
 	assert.ElementsMatch(t, []string{"four", "five"}, index[4])
 }
 
-func BuildUniqueIndex(t *testing.T) {
+func TestBuildUniqueIndex(t *testing.T) {
 	strings := []string{"a", "four", "eleven", "five"}
 	l := func(s string) int { return len(s) }
 	index := slice.BuildUniqueIndex(strings, l)
