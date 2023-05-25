@@ -24,3 +24,9 @@ func TestFilter(t *testing.T) {
 	sl13 := slice.Filter([]int{1, 3, 5, 7}, set.Contains(s123))
 	assert.ElementsMatch(t, []int{1, 3}, sl13)
 }
+
+func TestToSlice(t *testing.T) {
+	s123 := slice.ToSet([]int{1, 2, 3})
+	sl123 := s123.ToSlice()
+	assert.ElementsMatch(t, sl123, []int{3, 2, 1})
+}

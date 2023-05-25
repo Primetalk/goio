@@ -15,3 +15,12 @@ func Contains[A comparable](set Set[A]) func(A) bool {
 func SetSize[A comparable](s Set[A]) int {
 	return len(s)
 }
+
+// ToSlice retrieves all set elements in an unpredictable order.
+func (s Set[A]) ToSlice() (res []A) {
+	res = make([]A, 0, len(s))
+	for k := range s {
+		res = append(res, k)
+	}
+	return
+}
