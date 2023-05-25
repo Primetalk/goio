@@ -339,3 +339,19 @@ func Distinct[A comparable](as []A) (res []A) {
 	}
 	return
 }
+
+// Intersperse inserts a separator sep between each element in A.
+func Intersperse[A any](as []A, sep A) (res []A) {
+	l := len(as)*2 - 1
+	if l < 0 {
+		l = 0
+	}
+	res = make([]A, l)
+	for i, a := range as {
+		res[i*2] = a
+		if i < len(as)-1 {
+			res[i*2+1] = sep
+		}
+	}
+	return
+}

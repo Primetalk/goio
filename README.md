@@ -495,6 +495,7 @@ Some utilities that are convenient when working with slices.
 - `slice.Head[A any](as []A) (a A)` - Head returns head of the slice. Panics with `ErrHeadOfEmptySlice` when slice is empty.
 - `slice.Tail[A any](as []A) []A` - Tail returns tail of the slice.
 - `slice.Distinct[A comparable](as []A) (res []A)` - Distinct returns only unique elements.
+- `slice.Intersperse[A any](as []A, sep A) (res []A)` - Intersperse inserts a separator sep between each element in A.
 
 We can convert a slice to a set:
 

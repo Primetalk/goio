@@ -170,3 +170,12 @@ func TestDistinct(t *testing.T) {
 	ints := []int{2, 2, 0, 1, 1, 5, 0, 2}
 	assert.ElementsMatch(t, slice.Distinct(ints), []int{2, 0, 1, 5})
 }
+
+func TestIntersperse(t *testing.T) {
+	ints := []int{2, 2, 0, 1}
+	assert.ElementsMatch(t, slice.Intersperse(ints, -1), []int{2, -1, 2, -1, 0, -1, 1})
+	ints2 := []int{2}
+	assert.ElementsMatch(t, slice.Intersperse(ints2, -1), []int{2})
+	ints3 := []int{}
+	assert.ElementsMatch(t, slice.Intersperse(ints3, -1), []int{})
+}
