@@ -95,10 +95,10 @@ func TestThroughExecutionContextUnordered(t *testing.T) {
 	assert.Equal(t, taskCount, set.SetSize(slice.ToSet(results)))
 	assert.ElementsMatch(t, ids, results)
 
-	lowest_duration_ms := durMs * taskCount / concurrency
-	required_duration := time.Duration(lowest_duration_ms*2) * time.Millisecond
-	if duration > time.Duration(required_duration) {
-		fmt.Printf("WARN: pool processing took %v more than %v", duration, required_duration)
+	lowestDurationMs := durMs * taskCount / concurrency
+	requiredDuration := time.Duration(lowestDurationMs*2) * time.Millisecond
+	if duration > time.Duration(requiredDuration) {
+		fmt.Printf("WARN: pool processing took %v more than %v", duration, requiredDuration)
 		// NB! we cannot assert on time, because this code could run on a slow computer
 		// assert.WithinDuration(t, start, time.Now(), time.Duration(required_duration)*time.Millisecond)
 	}
