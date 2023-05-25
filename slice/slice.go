@@ -355,3 +355,30 @@ func Intersperse[A any](as []A, sep A) (res []A) {
 	}
 	return
 }
+
+// BuildIndex creates an index of elements in slice by a user-defined key function.
+func BuildIndex[A any, K comparable](as []A, key func(A) K) (res map[K][]A) {
+	res = make(map[K][]A)
+	for _, a := range as {
+		k := key(a)
+		arr, ok := res[k]
+		if !ok {
+			arr = []A{}
+		}
+		arr = append(arr, a)
+		res[k] = arr
+	}
+	return
+}
+
+// BuildUniqueIndex creates an index assuming that all keys are unique.
+// If that is not true, map will contain the last element for the same key.
+// Consider using BuildIndex.
+func BuildUniqueIndex[A any, K comparable](as []A, key func(A) K) (res map[K]A) {
+	res = make(map[K]A)
+	for _, a := range as {
+		k := key(a)
+		res[k] = a
+	}
+	return
+}
