@@ -496,6 +496,8 @@ Some utilities that are convenient when working with slices.
 - `slice.Tail[A any](as []A) []A` - Tail returns tail of the slice.
 - `slice.Distinct[A comparable](as []A) (res []A)` - Distinct returns only unique elements.
 - `slice.Intersperse[A any](as []A, sep A) (res []A)` - Intersperse inserts a separator sep between each element in A.
+- `slice.BuildIndex[A any, K comparable](as []A, key func(A) K) (res map[K][]A)` -  BuildIndex creates an index of elements in slice by a user-defined key function.
+- `slice.BuildUniqueIndex[A any, K comparable](as []A, key func(A) K) (res map[K]A)` -  BuildUniqueIndex creates an index assuming that all keys are unique. If that is not true, map will contain the last element for the same key. Consider using BuildIndex.
 
 We can convert a slice to a set:
 

@@ -179,3 +179,11 @@ func TestIntersperse(t *testing.T) {
 	ints3 := []int{}
 	assert.ElementsMatch(t, slice.Intersperse(ints3, -1), []int{})
 }
+
+func TestBuildIndex(t *testing.T) {
+	strings := []string{"a", "four", "eleven"}
+	l := func(s string) int { return len(s) }
+	index := slice.BuildUniqueIndex(strings, l)
+	assert.Equal(t, "a", index[1])
+	assert.Equal(t, "four", index[4])
+}
