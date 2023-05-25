@@ -494,6 +494,7 @@ Some utilities that are convenient when working with slices.
 - `slice.HeadTail[A any](as []A) (A, []A)` - HeadTail returns head, tail. Panics with ErrHeadOfEmptySlice when slice is empty.
 - `slice.Head[A any](as []A) (a A)` - Head returns head of the slice. Panics with `ErrHeadOfEmptySlice` when slice is empty.
 - `slice.Tail[A any](as []A) []A` - Tail returns tail of the slice.
+- `slice.Distinct[A comparable](as []A) (res []A)` - Distinct returns only unique elements.
 
 We can convert a slice to a set:
 
@@ -509,6 +510,7 @@ And we can perform some operations with sets:
 
 - `set.Contains[A comparable](set map[A]struct{}) func (A) bool` - Contains creates a predicate that will check if an element is in this set.
 - `set.SetSize[A comparable](s Set[A]) int` - SetSize returns the size of the set.
+- `(s Set[A])ToSlice() (res []A)` - ToSlice retrieves all set elements in an unpredictable order.
 
 ### Slices of numbers
 

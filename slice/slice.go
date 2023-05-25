@@ -326,3 +326,16 @@ func Head[A any](as []A) (a A) {
 func Tail[A any](as []A) []A {
 	return Drop(as, 1)
 }
+
+// Distinct returns only unique elements.
+func Distinct[A comparable](as []A) (res []A) {
+	keys := make(map[A]struct{}, len(as))
+	res = make([]A, 0, len(as))
+	for _, a := range as {
+		if _, isPresent := keys[a]; !isPresent {
+			keys[a] = struct{}{}
+			res = append(res, a)
+		}
+	}
+	return
+}
