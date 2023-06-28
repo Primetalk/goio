@@ -18,6 +18,8 @@ This package provides a few general functions that are sometimes useful.
 
 - `fun.Const[A any, B any](b B)func(A)B`
 - `fun.ConstUnit[B any](b B) func(Unit)B`
+- `fun.ConstNoArg[B any](b B) func() B` - ConstNoArg creates a function that will return the specified value.
+- `fun.Delay[A any](a A) func() A` -  Delay returns a function that will return the value.
 - `fun.Identity[A any](a A) A` - Identity function returns the given value unchanged.
 - `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
 - `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`

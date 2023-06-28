@@ -16,6 +16,13 @@ func ConstUnit[B any](b B) func(Unit) B {
 	return Const[Unit](b)
 }
 
+// ConstNoArg creates a function that will return the specified value.
+func ConstNoArg[B any](b B) func() B {
+	return func() B {
+		return b
+	}
+}
+
 // Swap returns a curried function with swapped order of arguments.
 func Swap[A any, B any, C any](f func(a A) func(b B) C) func(b B) func(a A) C {
 	return func(b B) func(a A) C {
@@ -55,4 +62,11 @@ func Compose[A any, B any, C any](f func(A) B, g func(B) C) func(A) C {
 // However, can be used anywhere where type A is needed.
 func Nothing[A any]() A {
 	panic("nothing")
+}
+
+// Delay returns a function that will return the value.
+func Delay[A any](a A) func() A {
+	return func() A {
+		return a
+	}
 }
