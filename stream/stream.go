@@ -51,8 +51,24 @@ func NewStepResultFinished[A any]() StepResult[A] {
 	}
 }
 
-// StreamFold performs arbitrary processing of a stream's single step result.
-func StreamFold[A any, B any](
+// StepResultMatch performs operations on any possible state of StepResult.
+func StepResultMatch[A any, B any](sra StepResult[A],
+	onFinish func() B,
+	onValue func(a A, continuation Stream[A]) B,
+	onEmpty func(continuation Stream[A]) B,
+) (b B) {
+	if sra.IsFinished {
+		b = onFinish()
+	} else if sra.HasValue {
+		b = onValue(sra.Value, sra.Continuation)
+	} else {
+		b = onEmpty(sra.Continuation)
+	}
+	return
+}
+
+// StreamMatch performs arbitrary processing of a stream's single step result.
+func StreamMatch[A any, B any](
 	stm Stream[A],
 	onFinish func() io.IO[B],
 	onValue func(a A, tail Stream[A]) io.IO[B],
@@ -77,6 +93,11 @@ func StreamFold[A any, B any](
 	)
 }
 
+// Cons prepends the given constant before the rest of the stream.
+func Cons[A any](a A, tail Stream[A]) Stream[A] {
+	return Stream[A](io.Lift(NewStepResult(a, tail)))
+}
+
 // LazyFinishedStepResult returns
 func LazyFinishedStepResult[A any]() io.IO[StepResult[A]] {
 	return io.Lift(NewStepResultFinished[A]())
@@ -84,7 +105,7 @@ func LazyFinishedStepResult[A any]() io.IO[StepResult[A]] {
 
 // MapEval maps the values of the stream. The provided function returns an IO.
 func MapEval[A any, B any](stm Stream[A], f func(a A) io.IO[B]) Stream[B] {
-	return Stream[B](StreamFold(stm,
+	return Stream[B](StreamMatch(stm,
 		LazyFinishedStepResult[B],
 		func(a A, tail Stream[A]) io.IO[StepResult[B]] {
 			iob := f(a)
@@ -128,7 +149,7 @@ func AndThen[A any](stm1 Stream[A], stm2 Stream[A]) Stream[A] {
 
 // AndThenLazy appends another stream. The other stream is constructed lazily.
 func AndThenLazy[A any](stm1 Stream[A], stm2 func() Stream[A]) Stream[A] {
-	return Stream[A](StreamFold(
+	return Stream[A](StreamMatch(
 		stm1,
 		func() io.IO[StepResult[A]] {
 			return io.IO[StepResult[A]](stm2())

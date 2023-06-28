@@ -2,7 +2,6 @@ package stream
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/primetalk/goio/either"
 	"github.com/primetalk/goio/fun"
@@ -79,9 +78,13 @@ func ToSlice[A any](stm Stream[A]) io.IO[[]A] {
 // the head of an empty stream.
 var ErrHeadOfEmptyStream = errors.New("head of empty stream")
 
+// ErrLastOfEmptyStream - an error that is returned when someone attempts to retrieve
+// the last of an empty stream.
+var ErrLastOfEmptyStream = errors.New("last of empty stream")
+
 // HeadAndTail returns the very first element of the stream and the rest of the stream.
 func HeadAndTail[A any](stm Stream[A]) io.IO[fun.Pair[A, Stream[A]]] {
-	return StreamFold(stm,
+	return StreamMatch(stm,
 		func() io.IO[fun.Pair[A, Stream[A]]] {
 			return io.Fail[fun.Pair[A, Stream[A]]](ErrHeadOfEmptyStream)
 		},
@@ -123,10 +126,10 @@ func Last[A any](stm Stream[A]) io.IO[A] {
 	return io.FlatMap(
 		optA,
 		func(st option.Option[A]) io.IO[A] {
-			return option.Fold(st,
+			return option.Match(st,
 				io.Lift[A],
 				func() io.IO[A] {
-					return io.Fail[A](fmt.Errorf("last of an empty stream"))
+					return io.Fail[A](ErrLastOfEmptyStream)
 				},
 			)
 		},
@@ -164,7 +167,7 @@ func TakeAndTail[A any](stm Stream[A], n int, prefix []A) io.IO[fun.Pair[[]A, St
 	if n == 0 {
 		return io.Lift(fun.NewPair(prefix, stm))
 	} else {
-		return StreamFold(stm,
+		return StreamMatch(stm,
 			func() io.IO[fun.Pair[[]A, Stream[A]]] {
 				return io.Lift(fun.NewPair(prefix, Empty[A]()))
 			},
