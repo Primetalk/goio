@@ -40,7 +40,7 @@ func OnError[A any](io IO[A], onError func(err error) IO[fun.Unit]) IO[A] {
 func Retry[A any, S any](ioa IO[A], strategy func(s S, err error) IO[option.Option[S]], zero S) IO[A] {
 	return Recover(ioa, func(err error) IO[A] {
 		return FlatMap(strategy(zero, err), func(os option.Option[S]) IO[A] {
-			return option.Fold(os,
+			return option.Match(os,
 				func(s S) IO[A] {
 					return Retry(ioa, strategy, s)
 				},
@@ -59,7 +59,7 @@ func RetryS[A any, S any](ioa IO[A], strategy func(s S, err error) IO[option.Opt
 		Map(ioa, func(a A) fun.Pair[A, S] { return fun.NewPair(a, zero) }),
 		func(err error) IO[fun.Pair[A, S]] {
 			return FlatMap(strategy(zero, err), func(os option.Option[S]) IO[fun.Pair[A, S]] {
-				return option.Fold(os,
+				return option.Match(os,
 					func(s S) IO[fun.Pair[A, S]] {
 						return RetryS(ioa, strategy, s)
 					},
