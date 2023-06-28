@@ -27,3 +27,14 @@ func TestPair(t *testing.T) {
 func TestToString(t *testing.T) {
 	assert.Equal(t, "1", fun.ToString(1))
 }
+
+func TestNothing(t *testing.T) {
+	assert.Panics(t, func() {
+		fun.Nothing[int]()
+	})
+}
+
+func TestConstNoArg(t *testing.T) {
+	assert.Equal(t, 5, fun.ConstNoArg(5)())
+	assert.Equal(t, 5, fun.Delay(5)())
+}
