@@ -25,6 +25,11 @@ func Eval[A any](ioa io.IO[A]) Stream[A] {
 	}))
 }
 
+// EvalEmpty returns an empty stream that performs the given operation.
+func EvalEmpty[A any](iou io.IOUnit) Stream[A] {
+	return Stream[A](io.AndThen(iou, io.IO[StepResult[A]](Empty[A]())))
+}
+
 // Lift returns a stream of one value.
 func Lift[A any](a A) Stream[A] {
 	return Emit(a)
@@ -85,5 +90,12 @@ func FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A] {
 func Nats() Stream[int] {
 	return Unfold(0, func(s int) int {
 		return s + 1
+	})
+}
+
+// Fib returns an infinite stream of Fibonacci numbers
+func Fib(prev int64, b int64) Stream[int64] {
+	return AndThenLazy(Emit(b), func() Stream[int64] {
+		return Fib(b, prev+b)
 	})
 }
