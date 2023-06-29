@@ -18,6 +18,8 @@ This package provides a few general functions that are sometimes useful.
 
 - `fun.Const[A any, B any](b B)func(A)B`
 - `fun.ConstUnit[B any](b B) func(Unit)B`
+- `fun.ConstNoArg[B any](b B) func() B` - ConstNoArg creates a function that will return the specified value.
+- `fun.Delay[A any](a A) func() A` -  Delay returns a function that will return the value.
 - `fun.Identity[A any](a A) A` - Identity function returns the given value unchanged.
 - `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
 - `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`
@@ -66,7 +68,7 @@ A convenient data structure `Option[A]` that provides safe mechanisms to work wi
 - `option.None[A any]() Option[A]` - None constructs an option without value.
 - `option.Some[A any](a A) Option[A]` - Some constructs an option with value.
 - `option.Map[A any, B any](oa Option[A], f func(A) B) Option[B]` - Map applies a function to the value inside option if any.
-- `option.Fold[A any, B any](oa Option[A], f func(A) B, g func() B) (b B)` - Fold transforms all possible values of OptionA using two provided functions.
+- `option.Match[A any, B any](oa Option[A], f func(A) B, g func() B) (b B)` - Match transforms all possible values of OptionA using two provided functions.
 - `option.Filter[A any](oa Option[A], predicate func(A) bool) Option[A]` - Filter leaves the value inside option only if predicate is true.
 - `option.FlatMap[A any, B any](oa Option[A], f func(A) Option[B]) Option[B]` - FlatMap converts an internal value if it is present using the provided function.
 - `option.Flatten[A any](ooa Option[Option[A]]) Option[A]` - Flatten simplifies option of option to just Option[A].
@@ -327,9 +329,14 @@ The following functions could be used to create a new stream:
 - `stream.Unfold[A any](zero A, f func(A) A) Stream[A]` - generates an infinite stream from previous values
 - `stream.FromStepResult[A any](iosr io.IO[StepResult[A]]) Stream[A]` - basic definition of a stream - IO that returns value and continuation.
 - `stream.Eval[A any](ioa io.IO[A]) Stream[A]` - Eval returns a stream of one value that is the result of IO.
+- `stream.EvalEmpty[A any](iou io.IOUnit) Stream[A]` - EvalEmpty returns an empty stream that performs the given operation.
 - `stream.Fail[A any](err error) Stream[A]` - Fail returns a stream that fails immediately.
 - `stream.Wrapf[A any](stm Stream[A], format string, args ...interface{}) Stream[A]` - Wrapf wraps errors produced by this stream with additional context info.
+
+Simple streams (for test and experimental purposes):
+
 - `stream.Nats() Stream[int]` - Nats returns an infinite stream of ints starting from 1.
+- `stream.Fib(prev int64, b int64) Stream[int64]` - Fib returns an infinite stream of Fibonacci numbers.
 
 ### Manipulation
 
@@ -361,7 +368,8 @@ Functions to explicitly deal with failures:
 
 - `stream.FoldToGoResult[A any](stm Stream[A]) Stream[io.GoResult[A]]` - FoldToGoResult converts a stream into a stream of go results. All go results will be non-error except probably the last one.
 - `stream.UnfoldGoResult[A any](stm Stream[io.GoResult[A]], onFailure func(err error) Stream[A]) Stream[A]` - UnfoldGoResult converts a stream of GoResults back to normal stream. On the first encounter of Error, the stream fails.
-- `stream.StreamFold[A any, B any](stm Stream[A], onFinish func() io.IO[B], onValue func(a A, tail Stream[A]) io.IO[B], onEmpty func(tail Stream[A]) io.IO[B], onError func(err error) io.IO[B]) io.IO[B]` - StreamFold performs arbitrary processing of a stream's single step result.
+- `stream.StreamMatch[A any, B any](stm Stream[A], onFinish func() io.IO[B], onValue func(a A, tail Stream[A]) io.IO[B], onEmpty func(tail Stream[A]) io.IO[B], onError func(err error) io.IO[B]) io.IO[B]` - StreamMatch performs arbitrary processing of a stream's single step result.
+- `stream.StepResultMatch[A any, B any](sra StepResult[A], onFinish func() B, onValue func(a A, continuation Stream[A]) B, onEmpty func(continuation Stream[A]) B) (b B)` - StepResultMatch performs operations on any possible state of StepResult.
 
 Functions to explicitly deal with failures and stream completion:
 

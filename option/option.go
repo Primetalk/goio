@@ -22,7 +22,7 @@ func Some[A any](a A) Option[A] {
 
 // Map applies a function to the value inside option if any.
 func Map[A any, B any](oa Option[A], f func(A) B) Option[B] {
-	return Fold(oa,
+	return Match(oa,
 		func(a A) Option[B] {
 			return Some(f(a))
 		},
@@ -30,8 +30,8 @@ func Map[A any, B any](oa Option[A], f func(A) B) Option[B] {
 	)
 }
 
-// Fold transforms all possible values of OptionA using two provided functions.
-func Fold[A any, B any](oa Option[A], f func(A) B, g func() B) (b B) {
+// Match transforms all possible values of OptionA using two provided functions.
+func Match[A any, B any](oa Option[A], f func(A) B, g func() B) (b B) {
 	if oa.ValueOrNil == nil {
 		b = g()
 	} else {
@@ -42,7 +42,7 @@ func Fold[A any, B any](oa Option[A], f func(A) B, g func() B) (b B) {
 
 // Filter leaves the value inside option only if predicate is true.
 func Filter[A any](oa Option[A], predicate func(A) bool) Option[A] {
-	return Fold(oa,
+	return Match(oa,
 		func(a A) Option[A] {
 			if predicate(a) {
 				return oa
@@ -56,7 +56,7 @@ func Filter[A any](oa Option[A], predicate func(A) bool) Option[A] {
 
 // FlatMap converts an internal value if it is present using the provided function.
 func FlatMap[A any, B any](oa Option[A], f func(A) Option[B]) Option[B] {
-	return Fold(oa,
+	return Match(oa,
 		func(a A) Option[B] {
 			return f(a)
 		},
@@ -71,7 +71,7 @@ func Flatten[A any](ooa Option[Option[A]]) Option[A] {
 
 // Get is an unsafe function that unwraps the value from the option.
 func Get[A any](oa Option[A]) A {
-	return Fold(oa, fun.Identity[A], fun.Nothing[A])
+	return Match(oa, fun.Identity[A], fun.Nothing[A])
 }
 
 // ForEach runs the given function on the value if it's available.
