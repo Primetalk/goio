@@ -97,3 +97,84 @@ func TestResourceInResource(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.Equal(t, res18, 18)
 }
+
+func TestFlatMapReleasesOuterResourceWhenInnerAcquisitionFails(t *testing.T) {
+	innerAcquireErr := errors.New("inner acquisition failed")
+	outerReleaseCount := 0
+	outer := resource.NewResource(
+		io.Lift("outer"),
+		func(string) io.IO[fun.Unit] {
+			return io.FromPureEffect(func() {
+				outerReleaseCount++
+			})
+		},
+	)
+	composed := resource.FlatMap(outer, func(string) resource.Resource[int] {
+		return resource.Fail[int](innerAcquireErr)
+	})
+	useCalled := false
+
+	_, err := io.UnsafeRunSync(resource.Use(composed, func(int) io.IO[int] {
+		useCalled = true
+		return io.Lift(1)
+	}))
+
+	assert.Equal(t, innerAcquireErr, err)
+	assert.False(t, useCalled)
+	assert.Equal(t, 1, outerReleaseCount)
+}
+
+func TestFlatMapPreservesInnerAcquisitionErrorWhenOuterReleaseFails(t *testing.T) {
+	innerAcquireErr := errors.New("inner acquisition failed")
+	outerReleaseErr := errors.New("outer release failed")
+	outerReleaseCount := 0
+	outer := resource.NewResource(
+		io.Lift("outer"),
+		func(string) io.IO[fun.Unit] {
+			return io.AndThen(
+				io.FromPureEffect(func() {
+					outerReleaseCount++
+				}),
+				io.Fail[fun.Unit](outerReleaseErr),
+			)
+		},
+	)
+	composed := resource.FlatMap(outer, func(string) resource.Resource[int] {
+		return resource.Fail[int](innerAcquireErr)
+	})
+
+	_, err := io.UnsafeRunSync(resource.Use(composed, func(value int) io.IO[int] {
+		return io.Lift(value)
+	}))
+
+	assert.Equal(t, innerAcquireErr, err)
+	assert.Equal(t, 1, outerReleaseCount)
+}
+
+func TestFlatMapReleasesSuccessfullyAcquiredResourcesInReverseOrder(t *testing.T) {
+	releaseOrder := []string{}
+	outer := resource.NewResource(
+		io.Lift("outer"),
+		func(value string) io.IO[fun.Unit] {
+			return io.FromPureEffect(func() {
+				releaseOrder = append(releaseOrder, value)
+			})
+		},
+	)
+	composed := resource.FlatMap(outer, func(string) resource.Resource[string] {
+		return resource.NewResource(
+			io.Lift("inner"),
+			func(value string) io.IO[fun.Unit] {
+				return io.FromPureEffect(func() {
+					releaseOrder = append(releaseOrder, value)
+				})
+			},
+		)
+	})
+
+	value, err := io.UnsafeRunSync(resource.Use(composed, io.Lift[string]))
+
+	assert.NoError(t, err)
+	assert.Equal(t, "inner", value)
+	assert.Equal(t, []string{"inner", "outer"}, releaseOrder)
+}

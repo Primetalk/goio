@@ -108,14 +108,20 @@ func FlatMap[A any, B any](ra Resource[A], f func(a A) Resource[B]) Resource[B] 
 
 // ClosableIOTransform transforms a closable of io closable to just io closable.
 func ClosableIOTransform[A any](cioca Closable[io.IO[Closable[A]]]) (ioca io.IO[Closable[A]]) {
-	return io.Eval(func() (ca Closable[A], err error) {
-		defer fun.RecoverToErrorVar("resource.ClosableIOTransform", &err)
-		ca = ClosableFlatMap(cioca, func(ioca io.IO[Closable[A]]) (ca1 Closable[A]) {
-			ca1, err = io.UnsafeRunSync(ioca)
-			return
-		})
-		return
-	})
+	return io.Fold(cioca.Value,
+		func(ca Closable[A]) io.IO[Closable[A]] {
+			return io.Lift(ClosableFlatMap(cioca, func(io.IO[Closable[A]]) Closable[A] {
+				return ca
+			}))
+		},
+		func(acquireErr error) io.IO[Closable[A]] {
+			closeOuter := io.Recover(cioca.Close(), func(releaseErr error) io.IO[fun.Unit] {
+				log.Printf("error during outer resource release after inner acquisition failure: %+v", releaseErr)
+				return io.IOUnit1
+			})
+			return io.AndThen(closeOuter, io.Fail[Closable[A]](acquireErr))
+		},
+	)
 }
 
 // UnbufferedChannel returns a resource that manages a channel.
