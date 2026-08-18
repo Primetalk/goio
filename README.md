@@ -283,7 +283,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 
 - `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results.
 - `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` -  ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
-- `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
+- `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - Runs all IOs in parallel and returns the first success or failure. Losing computations are not canceled; they continue independently, and their result publication does not block after the winner returns.
 - `io.PairSequentially[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairSequentially runs two IOs sequentially and returns both results.
 - `io.PairParallel[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairParallel runs two IOs in parallel and returns both results.
 - `io.RunAlso[A any](ioa IO[A], other IOUnit) IO[A]` - RunAlso runs the other IO in parallel, but returns only the result of the first IO.
@@ -294,7 +294,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 - `io.Sleep(d time.Duration)IO[fun.Unit]` - Sleep makes the IO sleep the specified time.
 - `io.SleepA[A any](d time.Duration, value A)IO[A]` - SleepA sleeps and then returns the constant value
 - `var ErrorTimeout` - an error that will be returned in case of timeout
-- `io.WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A]` - WithTimeout waits IO for completion for no longer than the provided duration. If there are no results, the IO will fail with timeout error.
+- `io.WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A]` - Returns the IO result if it wins before the duration, otherwise fails with `io.ErrorTimeout`. Timeout stops waiting but does not cancel the losing IO, which may continue side effects independently.
 - `io.Never[A any]() IO[A]` - Never is a simple IO that never returns.
 - `io.Notify[A any](d time.Duration, value A, cb Callback[A]) IO[fun.Unit]` - Notify starts a separate thread that will call the given callback after the specified time.
 - `io.NotifyToChannel[A any](d time.Duration, value A, ch chan A) IO[fun.Unit]` - NotifyToChannel sends message to channel after specified duration.

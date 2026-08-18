@@ -22,8 +22,11 @@ func SleepA[A any](d time.Duration, value A) IO[A] {
 // ErrorTimeout is an error that will be returned in case of timeout.
 var ErrorTimeout = errors.New("timeout")
 
-// WithTimeout waits IO for completion for no longer than the provided duration.
-// If there are no results, the IO will fail with timeout error.
+// WithTimeout returns the IO result if it completes within the provided
+// duration, or fails with ErrorTimeout when the timeout wins.
+//
+// WithTimeout only stops waiting. It does not cancel the input IO, which
+// continues independently and may still perform side effects after timeout.
 func WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A] {
 	return func(ioa IO[A]) IO[A] {
 		first := ConcurrentlyFirst([]IO[GoResult[A]]{
