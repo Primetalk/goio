@@ -227,28 +227,25 @@ type ClosableIO interface {
 
 ## Parallel computing
 
-Go routine is represented using the `Fiber[A]` interface:
+Running work is observed using the `Fiber[A]` interface. A fiber publishes one terminal observation: either the underlying work result or observation shutdown, whichever wins first.
 
 ```go
 type Fiber[A any] interface {
 	// Join waits for results of the fiber.
-	// When fiber completes, this IO will complete and return the result.
-	// After this fiber is closed, all join IOs fail immediately.
+	// When work completes before observation is closed, Join returns its result.
+	// When Close wins first, current and future joins fail with ErrorFiberClosed.
 	Join() IO[A]
-	// Closes the fiber and stops sending callbacks.
-	// After closing, the respective go routine may complete
-	// This is not Cancel, it does not send any signals to the fiber.
-	// The work will still be done.
+	// Close shuts down observation of an incomplete fiber.
+	// It wakes current joiners, affects future joins, and is idempotent.
+	// Close does not cancel or stop the underlying work.
 	Close() IO[fun.Unit]
-	// Cancel sends cancellation signal to the Fiber.
-	// If the fiber respects the signal, it'll stop.
-	// Yet to be implemented.
-	// Cancel() IO[Unit]
 }
 ```
 
-- `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
-- `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
+`Close` is observation shutdown, not cancellation. If `Close` wins before work completion, all current and future joins fail with `io.ErrorFiberClosed`; the underlying goroutine continues independently and may still perform side effects. A late work result cannot replace the closed observation. If work completes first, later `Close` calls preserve that completed result.
+
+- `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start runs the IO in a separate go-routine and returns a handle through which any number of listeners can join the first terminal observation.
+- `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget starts the IO and closes observation of its result. It does not cancel the underlying work.
 - `io.FailedFiber[A any](err error) Fiber[A]` - FailedFiber creates a fiber that will fail on Join or Close with the given error.
 - `io.JoinWithTimeout[A any](f Fiber[A], d time.Duration) IO[A]` - JoinWithTimeout joins the given fiber and waits no more than the given duration.
 

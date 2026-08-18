@@ -8,18 +8,26 @@ import (
 	"github.com/primetalk/goio/fun"
 )
 
-// Fiber[A] is a type safe representation of Go routine.
-// One might Join() and receive the result of the go routine.
-// After Close() subsequent joins will fail.
+// ErrorFiberClosed indicates that observation of a fiber was closed before its work completed.
+// Closing observation does not cancel or stop the underlying work.
+var ErrorFiberClosed = errors.New("fiber observation is closed")
+
+// Fiber[A] is a type-safe handle for observing work running in a Go routine.
+// Join returns the first terminal observation published by work completion or Close.
 type Fiber[A any] interface {
 	// Join waits for results of the fiber.
-	// When fiber completes, this IO will complete and return the result.
-	// After this fiber is closed, all join IOs fail immediately.
+	// When work completes before observation is closed, Join returns its result.
+	// When Close wins first, current and future joins fail with ErrorFiberClosed.
 	Join() IO[A]
-	// Closes the fiber and stops sending callbacks.
-	// After closing, the respective go routine may complete
-	// This is not Cancel, it does not send any signals to the fiber.
-	// The work will still be done.
+	// Close shuts down observation of an incomplete fiber.
+	//
+	// Close publishes ErrorFiberClosed to all current joiners and makes future
+	// joins fail with the same error. Close is idempotent. If work completed
+	// first, Close preserves the completed result. If Close completed first,
+	// later work completion is ignored by this observation handle.
+	//
+	// Close is not cancellation: it sends no signal to the underlying work,
+	// which continues independently and may still perform side effects.
 	Close() IO[fun.Unit]
 	// Cancel sends cancellation signal to the Fiber.
 	// If the fiber respects the signal, it'll stop.
@@ -35,28 +43,45 @@ type fiberImpl[A any] struct {
 	callbacks []Callback[A]
 }
 
+var _ Fiber[any] = (*fiberImpl[any])(nil)
+
+func (f *fiberImpl[A]) registerJoiner(cb Callback[A]) {
+	f.mu.Lock()
+	if f.result == nil {
+		f.callbacks = append(f.callbacks, cb)
+		f.mu.Unlock()
+		return
+	}
+	result := *f.result
+	f.mu.Unlock()
+
+	cb(result.Value, result.Error)
+}
+
+func (f *fiberImpl[A]) publishResult(result GoResult[A]) bool {
+	f.mu.Lock()
+	if f.result != nil {
+		f.mu.Unlock()
+		return false
+	}
+	f.result = &result
+	callbacks := f.callbacks
+	f.callbacks = nil
+	f.mu.Unlock()
+
+	for _, cb := range callbacks {
+		cb(result.Value, result.Error)
+	}
+	return true
+}
+
 func (f *fiberImpl[A]) Join() IO[A] {
-	return Async(func(cb Callback[A]) {
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		if f.result == nil {
-			f.callbacks = append(f.callbacks, cb)
-		} else {
-			// we run external function in a go routine just to make sure we are not locked forever
-			go cb(f.result.Value, f.result.Error)
-		}
-	})
+	return Async(f.registerJoiner)
 }
 
 func (f *fiberImpl[A]) Close() IO[fun.Unit] {
 	return FromPureEffect(func() {
-		f.mu.Lock()
-		defer f.mu.Unlock()
-		if f.result == nil {
-			f.result = &GoResult[A]{
-				Error: errors.New("fiber is closed"),
-			}
-		}
+		f.publishResult(GoResult[A]{Error: ErrorFiberClosed})
 	})
 }
 
@@ -75,14 +100,7 @@ func StartInExecutionContext[A any](ec ExecutionContext) func(io IO[A]) IO[Fiber
 			goRoutine := func() {
 				defer fun.RecoverToLog("StartInExecutionContext.goRoutine")
 				a, err1 := UnsafeRunSync(io)
-				fiber.mu.Lock()
-				fiber.result = &GoResult[A]{a, err1}
-				callbacks := fiber.callbacks
-				fiber.callbacks = []Callback[A]{}
-				fiber.mu.Unlock()
-				for _, cb := range callbacks {
-					cb(a, err1)
-				}
+				fiber.publishResult(GoResult[A]{Value: a, Error: err1})
 			}
 			return Map(ec.Start(goRoutine), fun.ConstUnit[Fiber[A]](fiber))
 		})
@@ -98,8 +116,8 @@ func Start[A any](io IO[A]) IO[Fiber[A]] {
 	return StartInExecutionContext[A](globalUnboundedExecutionContext)(io)
 }
 
-// FireAndForget runs the given IO in a go routine and ignores the result
-// It uses Fiber underneath.
+// FireAndForget starts the given IO and closes observation of its result.
+// The underlying work continues independently; FireAndForget does not cancel it.
 func FireAndForget[A any](ioa IO[A]) IO[fun.Unit] {
 	return FlatMap(Start(ioa), func(fiber Fiber[A]) IO[fun.Unit] {
 		return fiber.Close()
