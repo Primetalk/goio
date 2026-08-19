@@ -201,7 +201,11 @@ IO might be implemented in various ways. Here we implement IO using continuation
 `ObtainResult` evaluates explicit continuation chains iteratively. The current composition combinators are not a Cats-style single bind interpreter: left-associated `FlatMap`, `Map`, and `Sequence` programs can enter nested `ObtainResult` calls. This project supports and tests these composition forms at a bounded depth of 10000, including failure propagation. This is a practical compatibility guarantee, not a claim of unlimited stack safety; callers should avoid assuming arbitrarily deep composition is safe.
 
 - `type Continuation[A any] func() ResultOrContinuation[A]` - Continuation represents some multistep computation. Here `ResultOrContinuation[A]` is either a final result (value or error) or another continuation.
-- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes an explicit continuation chain until a final result is obtained. The mutable `io.MaxContinuationDepth` variable limits continuation iterations; its current default is 1,000,000.
+- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes an explicit continuation chain until a final result is obtained. The mutable `io.MaxContinuationDepth` variable limits continuation-function invocations; its current default is 1,000,000 and each execution snapshots it once. A final result on the last allowed invocation succeeds. Zero or negative values execute no continuation functions and return a limit error. Nil initial or intermediate continuations return an error.
+
+`io.MaxContinuationDepth` remains an exported mutable variable for compatibility. Configure it before starting concurrent IO execution and do not mutate it concurrently: external writes are unsynchronized and can race with the snapshot read at a run boundary. The limit is a safety ceiling, not fairness, yielding, or cancellation.
+
+In the current composition architecture, `MapErr`, `FlatMap`, and `Fold` may start nested `ObtainResult` interpreter executions. Each such interpreter execution has one stable limit snapshot, but a concurrent external write may affect a later nested execution. Eliminating nested interpreters requires the larger instruction-tree runtime redesign.
 
 ## Resources
 
