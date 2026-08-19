@@ -196,11 +196,12 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 
 ### Implementation details
 
-IO might be implemented in various ways. Here we implement IO using continuations. A simple step in the constructed IO program might either complete (returning a result or an error), or return a continuation - another execution of the same kind. In order to obtain result we should execute the returned function.
-Continuations help avoiding deeply nested stack traces. It's a universal way to do "trampolining".
+IO might be implemented in various ways. Here we implement IO using continuations. A simple step in the constructed IO program might either complete (returning a result or an error), or return a continuation—another execution of the same kind. In order to obtain a result, the continuation is executed by the run boundary.
+
+`ObtainResult` evaluates explicit continuation chains iteratively. The current composition combinators are not a Cats-style single bind interpreter: left-associated `FlatMap`, `Map`, and `Sequence` programs can enter nested `ObtainResult` calls. This project supports and tests these composition forms at a bounded depth of 10000, including failure propagation. This is a practical compatibility guarantee, not a claim of unlimited stack safety; callers should avoid assuming arbitrarily deep composition is safe.
 
 - `type Continuation[A any] func() ResultOrContinuation[A]` - Continuation represents some multistep computation. Here `ResultOrContinuation[A]` is either a final result (value or error) or another continuation.
-- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes continuation until final result is obtained. There is `io.MaxContinuationDepth` variable that allows to limit the depth of continuation executions. Default value is 1000000000000.
+- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes an explicit continuation chain until a final result is obtained. The mutable `io.MaxContinuationDepth` variable limits continuation iterations; its current default is 1,000,000.
 
 ## Resources
 
