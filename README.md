@@ -118,8 +118,10 @@ The composition of two consequtive calculations is fundamental to programming. T
 
 From error handling perspective `IO[A]` provides the following features:
 - encapsulates a calculation that may return `A` or might fail;
-- it never panics, all panics are wrapped into `error`s and presented for handling;
+- execution through `io.UnsafeRunSync`, `io.RunSync`, or `io.ObtainResult` recovers panics that cross that run boundary and returns them as errors;
 - provides convenient mechanisms for composing consequtive calculations (`io.Map`, `io.FlatMap`).
+
+`IO[A]` is an exported Go function type, so directly calling an `IO` value is an ordinary function call and does not establish a recovering run boundary. Code that starts its own goroutines is likewise responsible for recovering or publishing panics from those goroutines. Library-started fibers execute their work through `io.UnsafeRunSync`, so a work panic is observable as an error from `Fiber.Join`.
 
 ### Interaction with outer world vs simple (pure) functions/calculations.
 
@@ -132,17 +134,17 @@ The ability to understand and reason about programs is crucial to the ability of
 
 Unfortunately all these nice and desired properties break when there are so called "side effects" - change of state, outer world interaction, ... - all things that make the computation to produce a different effect (and probably return different function results) even being called with the same arguments.
 
-`IO[A]` provides a mechanism to arrange these side-effectful computations in such a way that it's easier to predict what is happening in the program. The main feature is the delay of actual effect execution until the late moment possible. A typical IO-based program does not perform any action until it is executed. It's often possible to construct the whole large computation for a complex program and only after that perform the execution. 
+`IO[A]` provides a mechanism to arrange these side-effectful computations in such a way that it's easier to predict what is happening in the program. The main feature is delaying actual effect execution until an explicit run boundary. `io.Eval`, `io.Delay`, `io.Pure`, `io.LiftFunc`, `io.Map`, `io.FlatMap`, `io.ForEach`, and `io.Async` registration defer their user functions until the returned IO is executed. It's often possible to construct a whole large computation and only then execute it.
 
 ### Construction
 
 To construct an IO one may use the following functions:
 
 - `io.Lift[A any](a A) IO[A]` - lifts a plain value to IO
-- `io.LiftFunc[A any, B any](f func(A) B) func(A) IO[B]` - LiftFunc wraps the result of function into IO.
+- `io.LiftFunc[A any, B any](f func(A) B) func(A) IO[B]` - LiftFunc converts `f` into a function whose application constructs a lazy IO. The original function is invoked only when that IO is executed. A panic from `f` is returned as an error when execution uses a recovering run boundary such as `io.UnsafeRunSync`.
 - `io.Fail[A any](err error) IO[A]` - lifts an error to IO
 - `io.FromConstantGoResult[A any](gr GoResult[A]) IO[A]` - FromConstantGoResult converts an existing GoResult value into an IO. Important! This is not for normal delayed IO execution. It cannot provide any guarantee for the moment when this go result was evaluated in the first place. This is just a combination of Lift and Fail.
-- `io.Eval[A any](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
+- `io.Eval[A any](func () (A, error)) IO[A]` - lifts and delays an arbitrary computation. Panics crossing a recovering run boundary are represented as errors.
 - `io.FromPureEffect(f func())IO[fun.Unit]` - FromPureEffect constructs IO from the simplest function signature.
 - `io.Delay[A any](f func()IO[A]) IO[A]` - represents a function as a plain IO
 - `io.Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) IO[B]` - handles both happy and sad paths.
@@ -184,11 +186,13 @@ type Consumer[A any] func(A) IOUnit
 
 ### Execution
 
-To finally run all constructed computations one may use `UnsafeRunSync` or `ForEach`:
+To run a constructed computation synchronously, use `UnsafeRunSync` or `RunSync`:
 
-- `io.UnsafeRunSync[A any](ioa IO[A])`
-- `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
-- `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
+- `io.UnsafeRunSync[A any](ioa IO[A])` - executes the IO and returns its value and error; panics crossing this boundary are recovered as errors.
+- `io.RunSync[A any](io IO[A]) GoResult[A]` - executes through `UnsafeRunSync` and returns the outcome as `GoResult`.
+- `io.ObtainResult[A any](c Continuation[A]) (A, error)` - lower-level interpreter boundary for explicit continuation chains; it also recovers panics crossing the boundary.
+
+`io.ForEach[A any](io IO[A], cb func(a A)) IO[fun.Unit]` is not an execution boundary. It constructs another lazy IO that invokes the callback only after the source IO succeeds and the returned IO is executed.
 
 ### Auxiliary functions
 

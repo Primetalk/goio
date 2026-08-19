@@ -21,10 +21,19 @@ func NewFailedGoResult[A any](err error) GoResult[A] {
 	}
 }
 
-// RunSync is the same as UnsafeRunSync but returns GoResult[A].
+// MakeGoResult constructs a GoResult from a value and an error.
+// If there's an error, the value is ignored.
+func MakeGoResult[A any](value A, err error) GoResult[A] {
+	if err != nil {
+		return NewFailedGoResult[A](err)
+	}
+	return NewGoResult(value)
+}
+
+// RunSync executes io through the UnsafeRunSync panic-recovering boundary and
+// returns its value or error as GoResult[A].
 func RunSync[A any](io IO[A]) GoResult[A] {
-	a, err := UnsafeRunSync(io)
-	return GoResult[A]{Value: a, Error: err}
+	return MakeGoResult(UnsafeRunSync(io))
 }
 
 // FromConstantGoResult converts an existing GoResult value into a fake IO.
@@ -33,8 +42,10 @@ func FromConstantGoResult[A any](gr GoResult[A]) IO[A] {
 	return Eval(func() (A, error) { return gr.Value, gr.Error })
 }
 
-// IOFuncToGoResult converts a function that returns IO
-// to a function that will return GoResult.
+// IOFuncToGoResult converts a function that returns IO to a function that runs
+// that IO through RunSync and returns GoResult. Calling the returned function
+// invokes f before the RunSync boundary; a panic from f itself is therefore not
+// recovered by that boundary.
 func IOFuncToGoResult[A any, B any](f func(a A) IO[B]) func(A) GoResult[B] {
 	return func(a A) GoResult[B] {
 		return RunSync(f(a))

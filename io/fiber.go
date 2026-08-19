@@ -107,11 +107,10 @@ func StartInExecutionContext[A any](ec ExecutionContext) func(io IO[A]) IO[Fiber
 	}
 }
 
-// Start will start the IO in a separate go-routine (actually in the global unbounded execution context).
-// It'll establish a channel with callbacks, so that
-// any number of listeners could join the returned fiber.
-// When completed it'll start sending the results to the callbacks.
-// The same value will be delivered to all listeners.
+// Start executes the IO in a separate Go routine using the global unbounded
+// execution context. Work panics are recovered by the fiber's UnsafeRunSync
+// boundary and are observable as errors from Join. Any number of listeners can
+// join the same first terminal observation.
 func Start[A any](io IO[A]) IO[Fiber[A]] {
 	return StartInExecutionContext[A](globalUnboundedExecutionContext)(io)
 }

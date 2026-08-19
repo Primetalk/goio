@@ -10,7 +10,10 @@ import (
 
 // IO[A] represents a calculation that will yield a value of type A once executed.
 // The calculation might as well fail.
-// It is designed to not panic ever.
+// Constructors and combinators normally delay user work until an execution
+// boundary. UnsafeRunSync and ObtainResult recover panics that cross those
+// boundaries and return them as errors. Direct invocation of an IO function is
+// an ordinary Go call and does not provide that recovery boundary.
 type IO[A any] Continuation[A]
 
 // LiftPair[A] constructs an IO from constant values.
@@ -25,12 +28,14 @@ func LiftPair[A any](a A, err error) IO[A] {
 }
 
 // UnsafeRunSync runs the given IO[A] synchronously and returns the result.
+// Panics that cross this execution boundary are recovered and returned as errors.
 func UnsafeRunSync[A any](io IO[A]) (res A, err error) {
 	defer fun.RecoverToErrorVar("UnsafeRunSync", &err)
 	return ObtainResult(Continuation[A](io))
 }
 
-// Delay[A] wraps a function that will then return an IO.
+// Delay[A] defers invoking f until the returned IO is executed.
+// Panics from f become errors when execution occurs through a recovering run boundary.
 func Delay[A any](f func() IO[A]) IO[A] {
 	return func() ResultOrContinuation[A] {
 		return f()()
@@ -38,7 +43,8 @@ func Delay[A any](f func() IO[A]) IO[A] {
 }
 
 // Eval[A] constructs an IO[A] from a simple function that might fail.
-// If there is panic in the function, it's recovered from and represented as an error.
+// Eval does not invoke f during construction. Panics from f become errors when
+// execution occurs through a recovering run boundary such as UnsafeRunSync.
 func Eval[A any](f func() (A, error)) IO[A] {
 	return func() ResultOrContinuation[A] {
 		a, err := f()
@@ -50,6 +56,7 @@ func Eval[A any](f func() (A, error)) IO[A] {
 }
 
 // FromPureEffect constructs IO from the simplest function signature.
+// It does not invoke f until the returned IO is executed.
 func FromPureEffect(f func()) IO[fun.Unit] {
 	return func() ResultOrContinuation[fun.Unit] {
 		f()
@@ -57,7 +64,8 @@ func FromPureEffect(f func()) IO[fun.Unit] {
 	}
 }
 
-// FromUnit consturcts IO[fun.Unit] from a simple function that might fail.
+// FromUnit constructs IO[fun.Unit] from a simple function that might fail.
+// It does not invoke f until the returned IO is executed.
 func FromUnit(f func() error) IO[fun.Unit] {
 	return func() ResultOrContinuation[fun.Unit] {
 		return ResultOrContinuation[fun.Unit]{
@@ -67,6 +75,8 @@ func FromUnit(f func() error) IO[fun.Unit] {
 }
 
 // Pure[A] constructs an IO[A] from a function that cannot fail.
+// It does not invoke f until the returned IO is executed. Panics from f become
+// errors when execution occurs through a recovering run boundary.
 func Pure[A any](f func() A) IO[A] {
 	return Eval(func() (A, error) {
 		return f(), nil
@@ -97,6 +107,8 @@ func MapErr[A any, B any](ioA IO[A], f func(a A) (B, error)) IO[B] {
 }
 
 // Map converts the IO[A] result using the provided function that cannot fail.
+// It does not invoke f until ioA is executed successfully. Panics from f become
+// errors when execution occurs through a recovering run boundary.
 func Map[A any, B any](ioA IO[A], f func(a A) B) IO[B] {
 	return MapErr(ioA, func(a A) (B, error) { return f(a), nil })
 }
@@ -108,6 +120,8 @@ func MapConst[A any, B any](ioA IO[A], b B) IO[B] {
 
 // FlatMap converts the result of IO[A] using a function that itself returns an IO[B].
 // It'll fail if any of IO[A] or IO[B] fail.
+// It does not invoke f until ioA is executed successfully. Panics from f become
+// errors when execution occurs through a recovering run boundary.
 func FlatMap[A any, B any](ioA IO[A], f func(a A) IO[B]) IO[B] {
 	return func() ResultOrContinuation[B] {
 		a, err := ObtainResult(Continuation[A](ioA))
@@ -145,10 +159,15 @@ func Lift[A any](a A) IO[A] {
 	return LiftPair(a, nil)
 }
 
-// LiftFunc wraps the result of function into IO.
+// LiftFunc converts a function into one whose application constructs a lazy IO.
+// Applying the returned function does not invoke f. The application is deferred
+// until the resulting IO is executed, so panics from f become errors when
+// execution occurs through a recovering run boundary such as UnsafeRunSync.
 func LiftFunc[A any, B any](f func(A) B) func(A) IO[B] {
 	return func(a A) IO[B] {
-		return Lift(f(a))
+		return Eval(func() (B, error) {
+			return f(a), nil
+		})
 	}
 }
 
@@ -238,7 +257,8 @@ var IOUnit1 = Lift(fun.Unit1)
 // IOUnit is IO[Unit]
 type IOUnit = IO[fun.Unit]
 
-// ForEach calls the provided callback after IO is completed.
+// ForEach constructs an IO that calls cb after io completes successfully.
+// It does not execute io or invoke cb until the returned IO is executed.
 func ForEach[A any](io IO[A], cb func(a A)) IO[fun.Unit] {
 	return Map(io, func(a A) fun.Unit {
 		cb(a)

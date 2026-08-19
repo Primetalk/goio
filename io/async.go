@@ -9,6 +9,8 @@ type Callback[A any] func(A, error)
 // Internally this function blocks the executing goroutine until the callback is called.
 // Only the first callback invocation is observed; later invocations return without blocking.
 // Async does not provide a cancellation token.
+// Registration is delayed until execution. A registration panic becomes an
+// error when execution occurs through a recovering run boundary.
 func Async[A any](k func(Callback[A])) IO[A] {
 	return func() ResultOrContinuation[A] {
 		ch := make(chan ResultOrContinuation[A], 1)
