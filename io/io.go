@@ -1,4 +1,16 @@
-// Package io implements IO tools similar to what is available in Scala cats library (and Haskell IO).
+// Package io provides lazy, composable effects inspired by Scala Cats and
+// Haskell IO.
+//
+// Constructors and combinators normally describe work without executing user
+// functions. UnsafeRunSync, RunSync, and ObtainResult are synchronous execution
+// boundaries; panics that cross those boundaries are recovered and returned as
+// errors. Directly invoking an IO function value is an ordinary Go call and is
+// not protected by that recovery contract.
+//
+// The package does not currently provide cancellation or structured
+// concurrency. Timeouts and first-result races stop waiting but do not stop
+// losing work. Fiber.Close closes observation of a fiber; it does not cancel the
+// underlying computation.
 package io
 
 import (
