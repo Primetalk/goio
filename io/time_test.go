@@ -5,30 +5,35 @@ import (
 	"time"
 
 	"github.com/primetalk/goio/io"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTimeout(t *testing.T) {
-	start := time.Now()
-	sleep1000ms := io.SleepA(1000*time.Millisecond, "a")
-	atMost100ms := io.WithTimeout[string](100 * time.Millisecond)(sleep1000ms)
-	_, err := io.UnsafeRunSync(atMost100ms)
-	assert.Equal(t, io.ErrorTimeout, err)
-	end := time.Now()
-	assert.WithinDuration(t, end, start, 200*time.Millisecond)
+	started := make(chan struct{})
+	release := make(chan struct{})
+	defer releaseSignal(release)
+	finished := make(chan struct{})
+	work := controlledResult(started, release, finished, "late", nil)
+
+	result := runIO(io.WithTimeout[string](10 * time.Millisecond)(work))
+	awaitSignal(t, started, "timed work to start")
+	timedResult := awaitRunResult(t, result, "timeout result")
+	require.ErrorIs(t, timedResult.Error, io.ErrorTimeout)
+
+	releaseSignal(release)
+	awaitSignal(t, finished, "timed work to finish after release")
 }
 
 func TestNotify(t *testing.T) {
-	start := time.Now()
-	notificationMoment := make(chan time.Time, 1)
+	notification := make(chan io.GoResult[string], 1)
 	ion := io.Notify(100*time.Millisecond, "a", func(str string, err error) {
-		assert.Equal(t, nil, err)
-
-		notificationMoment <- time.Now()
+		notification <- io.GoResult[string]{Value: str, Error: err}
 	})
-	_, err := io.UnsafeRunSync(ion)
-	assert.Equal(t, nil, err)
-	assert.WithinDuration(t, time.Now(), start, 10*time.Millisecond)
-	time.Sleep(200 * time.Millisecond)
-	assert.WithinDuration(t, <-notificationMoment, start, 200*time.Millisecond)
+
+	runResult := awaitRunResult(t, runIO(ion), "Notify setup")
+	require.NoError(t, runResult.Error)
+
+	notificationResult := awaitRunResult(t, notification, "Notify callback")
+	require.NoError(t, notificationResult.Error)
+	require.Equal(t, "a", notificationResult.Value)
 }
