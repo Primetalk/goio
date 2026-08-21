@@ -8,6 +8,9 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+permissions:
+  contents: write # needed for updating badge with coverage
+
 jobs:
 
   build:
@@ -15,16 +18,21 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        go: [1.18]
+        go: [1.18, 1.26]
     steps:
-    - uses: actions/checkout@v2
+    - name: Check out PR branch
+      uses: actions/checkout@v5
       with:
-        token: ${{ secrets.PAT }}
+        ref: ${{ github.head_ref || github.ref_name }}
+        fetch-depth: 0
 
-    - name: Set up Go
-      uses: actions/setup-go@v2
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ matrix.go }}
+
+    - name: Build
+      run: go build -v ./...
 
     - name: Test
       run: |
@@ -32,13 +40,32 @@ jobs:
         go tool cover -func coverage.out -o coverage.out  # Replaces coverage.out with the analysis of coverage.out
 
     - name: Go Coverage Badge
-      uses: tj-actions/coverage-badge-go@v1
+      uses: tj-actions/coverage-badge-go@v3
       if: ${{ runner.os == 'Linux' && matrix.go == '1.18' }} # Runs this on only one of the ci builds.
       with:
         green: 80
         filename: coverage.out
 
-    # - uses: stefanzweifel/git-auto-commit-action@v4
+    - name: Verify Changed files
+      uses: tj-actions/verify-changed-files@v16
+      id: verify-changed-files
+      with:
+        files: README.md
+
+    - name: Commit changes
+      if: steps.verify-changed-files.outputs.files_changed == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add README.md
+        git commit -m "chore: Updated coverage badge."
+
+    - name: Push changes
+      if: steps.verify-changed-files.outputs.files_changed == 'true'
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ github.token }}
+        branch: ${{ github.head_ref || github.ref_name }}    # - uses: stefanzweifel/git-auto-commit-action@v4
     #   id: auto-commit-action
     #   with:
     #     commit_message: Apply Code Coverage Badge

@@ -1,5 +1,5 @@
 # Implementation of IO, Stream, Fiber using go1.18 generics
-![Coverage](https://img.shields.io/badge/Coverage-86.9%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-90.2%25-brightgreen)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/56db71f0cf6d4c76b796af26a1d7ef41)](https://app.codacy.com/gh/Primetalk/goio?utm_source=github.com&utm_medium=referral&utm_content=Primetalk/goio&utm_campaign=Badge_Grade_Settings)
 [![Go Reference](https://pkg.go.dev/badge/github.com/primetalk/goio.svg)](https://pkg.go.dev/github.com/primetalk/goio)
 [![GoDoc](https://godoc.org/github.com/primetalk/goio?status.svg)](https://godoc.org/github.com/primetalk/goio)
@@ -118,8 +118,10 @@ The composition of two consequtive calculations is fundamental to programming. T
 
 From error handling perspective `IO[A]` provides the following features:
 - encapsulates a calculation that may return `A` or might fail;
-- it never panics, all panics are wrapped into `error`s and presented for handling;
+- execution through `io.UnsafeRunSync`, `io.RunSync`, or `io.ObtainResult` recovers panics that cross that run boundary and returns them as errors;
 - provides convenient mechanisms for composing consequtive calculations (`io.Map`, `io.FlatMap`).
+
+`IO[A]` is an exported Go function type, so directly calling an `IO` value is an ordinary function call and does not establish a recovering run boundary. Code that starts its own goroutines is likewise responsible for recovering or publishing panics from those goroutines. Library-started fibers execute their work through `io.UnsafeRunSync`, so a work panic is observable as an error from `Fiber.Join`.
 
 ### Interaction with outer world vs simple (pure) functions/calculations.
 
@@ -132,17 +134,17 @@ The ability to understand and reason about programs is crucial to the ability of
 
 Unfortunately all these nice and desired properties break when there are so called "side effects" - change of state, outer world interaction, ... - all things that make the computation to produce a different effect (and probably return different function results) even being called with the same arguments.
 
-`IO[A]` provides a mechanism to arrange these side-effectful computations in such a way that it's easier to predict what is happening in the program. The main feature is the delay of actual effect execution until the late moment possible. A typical IO-based program does not perform any action until it is executed. It's often possible to construct the whole large computation for a complex program and only after that perform the execution. 
+`IO[A]` provides a mechanism to arrange these side-effectful computations in such a way that it's easier to predict what is happening in the program. The main feature is delaying actual effect execution until an explicit run boundary. `io.Eval`, `io.Delay`, `io.Pure`, `io.LiftFunc`, `io.Map`, `io.FlatMap`, `io.ForEach`, and `io.Async` registration defer their user functions until the returned IO is executed. It's often possible to construct a whole large computation and only then execute it.
 
 ### Construction
 
 To construct an IO one may use the following functions:
 
 - `io.Lift[A any](a A) IO[A]` - lifts a plain value to IO
-- `io.LiftFunc[A any, B any](f func(A) B) func(A) IO[B]` - LiftFunc wraps the result of function into IO.
+- `io.LiftFunc[A any, B any](f func(A) B) func(A) IO[B]` - LiftFunc converts `f` into a function whose application constructs a lazy IO. The original function is invoked only when that IO is executed. A panic from `f` is returned as an error when execution uses a recovering run boundary such as `io.UnsafeRunSync`.
 - `io.Fail[A any](err error) IO[A]` - lifts an error to IO
 - `io.FromConstantGoResult[A any](gr GoResult[A]) IO[A]` - FromConstantGoResult converts an existing GoResult value into an IO. Important! This is not for normal delayed IO execution. It cannot provide any guarantee for the moment when this go result was evaluated in the first place. This is just a combination of Lift and Fail.
-- `io.Eval[A any](func () (A, error)) IO[A]` - lifts an arbitrary computation. Panics are handled and represented as errors.
+- `io.Eval[A any](func () (A, error)) IO[A]` - lifts and delays an arbitrary computation. Panics crossing a recovering run boundary are represented as errors.
 - `io.FromPureEffect(f func())IO[fun.Unit]` - FromPureEffect constructs IO from the simplest function signature.
 - `io.Delay[A any](f func()IO[A]) IO[A]` - represents a function as a plain IO
 - `io.Fold[A any, B any](io IO[A], f func(a A)IO[B], recover func (error)IO[B]) IO[B]` - handles both happy and sad paths.
@@ -184,11 +186,13 @@ type Consumer[A any] func(A) IOUnit
 
 ### Execution
 
-To finally run all constructed computations one may use `UnsafeRunSync` or `ForEach`:
+To run a constructed computation synchronously, use `UnsafeRunSync` or `RunSync`:
 
-- `io.UnsafeRunSync[A any](ioa IO[A])`
-- `io.ForEach[A any](io IO[A], cb func(a A))IO[fun.Unit]` - ForEach calls the provided callback after IO is completed.
-- `io.RunSync[A any](io IO[A]) GoResult[A]` - RunSync is the same as UnsafeRunSync but returns GoResult.
+- `io.UnsafeRunSync[A any](ioa IO[A])` - executes the IO and returns its value and error; panics crossing this boundary are recovered as errors.
+- `io.RunSync[A any](io IO[A]) GoResult[A]` - executes through `UnsafeRunSync` and returns the outcome as `GoResult`.
+- `io.ObtainResult[A any](c Continuation[A]) (A, error)` - lower-level interpreter boundary for explicit continuation chains; it also recovers panics crossing the boundary.
+
+`io.ForEach[A any](io IO[A], cb func(a A)) IO[fun.Unit]` is not an execution boundary. It constructs another lazy IO that invokes the callback only after the source IO succeeds and the returned IO is executed.
 
 ### Auxiliary functions
 
@@ -196,11 +200,16 @@ To finally run all constructed computations one may use `UnsafeRunSync` or `ForE
 
 ### Implementation details
 
-IO might be implemented in various ways. Here we implement IO using continuations. A simple step in the constructed IO program might either complete (returning a result or an error), or return a continuation - another execution of the same kind. In order to obtain result we should execute the returned function.
-Continuations help avoiding deeply nested stack traces. It's a universal way to do "trampolining".
+IO might be implemented in various ways. Here we implement IO using continuations. A simple step in the constructed IO program might either complete (returning a result or an error), or return a continuation—another execution of the same kind. In order to obtain a result, the continuation is executed by the run boundary.
+
+`ObtainResult` evaluates explicit continuation chains iteratively. The current composition combinators are not a Cats-style single bind interpreter: left-associated `FlatMap`, `Map`, and `Sequence` programs can enter nested `ObtainResult` calls. This project supports and tests these composition forms at a bounded depth of 10000, including failure propagation. This is a practical compatibility guarantee, not a claim of unlimited stack safety; callers should avoid assuming arbitrarily deep composition is safe.
 
 - `type Continuation[A any] func() ResultOrContinuation[A]` - Continuation represents some multistep computation. Here `ResultOrContinuation[A]` is either a final result (value or error) or another continuation.
-- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes continuation until final result is obtained. There is `io.MaxContinuationDepth` variable that allows to limit the depth of continuation executions. Default value is 1000000000000.
+- `io.ObtainResult[A any](c Continuation[A]) (res A, err error)` - ObtainResult executes an explicit continuation chain until a final result is obtained. The mutable `io.MaxContinuationDepth` variable limits continuation-function invocations; its current default is 1,000,000 and each execution snapshots it once. A final result on the last allowed invocation succeeds. Zero or negative values execute no continuation functions and return a limit error. Nil initial or intermediate continuations return an error.
+
+`io.MaxContinuationDepth` remains an exported mutable variable for compatibility. Configure it before starting concurrent IO execution and do not mutate it concurrently: external writes are unsynchronized and can race with the snapshot read at a run boundary. The limit is a safety ceiling, not fairness, yielding, or cancellation.
+
+In the current composition architecture, `MapErr`, `FlatMap`, and `Fold` may start nested `ObtainResult` interpreter executions. Each such interpreter execution has one stable limit snapshot, but a concurrent external write may affect a later nested execution. Eliminating nested interpreters requires the larger instruction-tree runtime redesign.
 
 ## Resources
 
@@ -227,28 +236,25 @@ type ClosableIO interface {
 
 ## Parallel computing
 
-Go routine is represented using the `Fiber[A]` interface:
+Running work is observed using the `Fiber[A]` interface. A fiber publishes one terminal observation: either the underlying work result or observation shutdown, whichever wins first.
 
 ```go
 type Fiber[A any] interface {
 	// Join waits for results of the fiber.
-	// When fiber completes, this IO will complete and return the result.
-	// After this fiber is closed, all join IOs fail immediately.
+	// When work completes before observation is closed, Join returns its result.
+	// When Close wins first, current and future joins fail with ErrorFiberClosed.
 	Join() IO[A]
-	// Closes the fiber and stops sending callbacks.
-	// After closing, the respective go routine may complete
-	// This is not Cancel, it does not send any signals to the fiber.
-	// The work will still be done.
+	// Close shuts down observation of an incomplete fiber.
+	// It wakes current joiners, affects future joins, and is idempotent.
+	// Close does not cancel or stop the underlying work.
 	Close() IO[fun.Unit]
-	// Cancel sends cancellation signal to the Fiber.
-	// If the fiber respects the signal, it'll stop.
-	// Yet to be implemented.
-	// Cancel() IO[Unit]
 }
 ```
 
-- `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start will start the IO in a separate go-routine. It'll establish a channel with callbacks, so that any number of listeners could join the returned fiber. When completed it'll start sending the results to the callbacks. The same value will be delivered to all listeners.
-- `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget runs the given IO in a go routine and ignores the result. It uses Fiber underneath.
+`Close` is observation shutdown, not cancellation. If `Close` wins before work completion, all current and future joins fail with `io.ErrorFiberClosed`; the underlying goroutine continues independently and may still perform side effects. A late work result cannot replace the closed observation. If work completes first, later `Close` calls preserve that completed result.
+
+- `io.Start[A any](io IO[A]) IO[Fiber[A]]` - Start runs the IO in a separate go-routine and returns a handle through which any number of listeners can join the first terminal observation.
+- `io.FireAndForget[A any](ioa IO[A]) IO[fun.Unit]` - FireAndForget starts the IO and closes observation of its result. It does not cancel the underlying work.
 - `io.FailedFiber[A any](err error) Fiber[A]` - FailedFiber creates a fiber that will fail on Join or Close with the given error.
 - `io.JoinWithTimeout[A any](f Fiber[A], d time.Duration) IO[A]` - JoinWithTimeout joins the given fiber and waits no more than the given duration.
 
@@ -286,7 +292,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 
 - `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results.
 - `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` -  ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
-- `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - ConcurrentlyFirst - runs all IOs in parallel. Returns the very first result.
+- `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - Runs all IOs in parallel and returns the first success or failure. Losing computations are not canceled; they continue independently, and their result publication does not block after the winner returns.
 - `io.PairSequentially[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairSequentially runs two IOs sequentially and returns both results.
 - `io.PairParallel[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairParallel runs two IOs in parallel and returns both results.
 - `io.RunAlso[A any](ioa IO[A], other IOUnit) IO[A]` - RunAlso runs the other IO in parallel, but returns only the result of the first IO.
@@ -297,7 +303,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 - `io.Sleep(d time.Duration)IO[fun.Unit]` - Sleep makes the IO sleep the specified time.
 - `io.SleepA[A any](d time.Duration, value A)IO[A]` - SleepA sleeps and then returns the constant value
 - `var ErrorTimeout` - an error that will be returned in case of timeout
-- `io.WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A]` - WithTimeout waits IO for completion for no longer than the provided duration. If there are no results, the IO will fail with timeout error.
+- `io.WithTimeout[A any](d time.Duration) func(ioa IO[A]) IO[A]` - Returns the IO result if it wins before the duration, otherwise fails with `io.ErrorTimeout`. Timeout stops waiting but does not cancel the losing IO, which may continue side effects independently.
 - `io.Never[A any]() IO[A]` - Never is a simple IO that never returns.
 - `io.Notify[A any](d time.Duration, value A, cb Callback[A]) IO[fun.Unit]` - Notify starts a separate thread that will call the given callback after the specified time.
 - `io.NotifyToChannel[A any](d time.Duration, value A, ch chan A) IO[fun.Unit]` - NotifyToChannel sends message to channel after specified duration.

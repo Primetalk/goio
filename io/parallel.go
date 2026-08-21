@@ -25,13 +25,17 @@ func Parallel[A any](ios ...IO[A]) IO[[]A] {
 	return ParallelInExecutionContext[A](globalUnboundedExecutionContext)(ios)
 }
 
-// ConcurrentlyFirst - runs all IOs in parallel.
-// returns the very first result.
-// TODO: after obtaining result - cancel the other IOs.
+// ConcurrentlyFirst runs all IOs in parallel and returns the first result,
+// whether that result is successful or failed.
+//
+// ConcurrentlyFirst does not cancel losing computations. They continue
+// independently after the winner is returned and may still perform side
+// effects. Result publication is buffered for every competitor so losers do
+// not block while publishing completion after the caller has received the
+// winner.
 func ConcurrentlyFirst[A any](ios []IO[A]) IO[A] {
 	channelIO := Pure(func() chan GoResult[A] {
 		return make(chan GoResult[A], len(ios))
-		// we will only read the very first response. Hence the other go routines could hang if sending to unbuffered channel
 	})
 	return FlatMap(channelIO, func(channel chan GoResult[A]) IO[A] {
 		ioSendToChannel := slice.Map(ios, func(ioa IO[A]) IO[fun.Unit] {

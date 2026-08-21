@@ -1,19 +1,27 @@
 package io
 
+import "sync"
+
 // Callback[A] is a function that takes A and error. A is only valid if error is nil.
 type Callback[A any] func(A, error)
 
 // Async[A] constructs an IO given a function that will eventually call a callback.
-// Internally this function creates a channel and blocks on it until the function calls it.
+// Internally this function blocks the executing goroutine until the callback is called.
+// Only the first callback invocation is observed; later invocations return without blocking.
+// Async does not provide a cancellation token.
+// Registration is delayed until execution. A registration panic becomes an
+// error when execution occurs through a recovering run boundary.
 func Async[A any](k func(Callback[A])) IO[A] {
 	return func() ResultOrContinuation[A] {
-		ch := make(chan ResultOrContinuation[A])
+		ch := make(chan ResultOrContinuation[A], 1)
+		var once sync.Once
 		cb := func(a A, err error) {
-			ch <- ResultOrContinuation[A]{
-				Value: a,
-				Error: err,
-			}
-			close(ch)
+			once.Do(func() {
+				ch <- ResultOrContinuation[A]{
+					Value: a,
+					Error: err,
+				}
+			})
 		}
 		k(cb)
 		res := <-ch
