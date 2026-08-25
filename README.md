@@ -1,4 +1,5 @@
-# Implementation of IO, Stream, Fiber using go1.18 generics
+# goio: IO, Stream, and Fiber for Go
+
 ![Coverage](https://img.shields.io/badge/Coverage-90.2%25-brightgreen)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/56db71f0cf6d4c76b796af26a1d7ef41)](https://app.codacy.com/gh/Primetalk/goio?utm_source=github.com&utm_medium=referral&utm_content=Primetalk/goio&utm_campaign=Badge_Grade_Settings)
 [![Go Reference](https://pkg.go.dev/badge/github.com/primetalk/goio.svg)](https://pkg.go.dev/github.com/primetalk/goio)
@@ -8,9 +9,17 @@
 ![Go](https://github.com/primetalk/goio/workflows/Go/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/Primetalk/goio/branch/master/graph/badge.svg?token=WXVKKB4EWO)](https://codecov.io/gh/Primetalk/goio)
 
-This library is an attempt to fill the gap of a decent generics streaming libraries in Go lang. The existing alternatives do not yet use Go 1.18 generics to their full potential.
+This library is an attempt to fill the gap of a decent generic streaming library in Go. The design uses Go generics to provide typed functional abstractions.
 
 The design is inspired by awesome Scala libraries [cats-effect](https://typelevel.org/cats-effect/) and [fs2](https://fs2.io/).
+
+## Go compatibility
+
+`goio` v0.4.0 requires Go 1.26 or newer. Maintained releases follow a rolling policy that supports the two most recent stable Go release families. With Go 1.27 as the current stable release, CI validates Go 1.26 and Go 1.27 on Linux, Windows, and macOS, and runs the race detector on Go 1.27 Linux.
+
+Version v0.3.7 remains available for users that must retain the former Go 1.18 module floor. See [MIGRATION.md](MIGRATION.md) for upgrade steps and [RELEASE_NOTES.md](RELEASE_NOTES.md) for the compatibility notice.
+
+Raising the Go version changes build compatibility only. It does not add cancellation, structured concurrency, or different timeout and race-selection semantics to the effect runtime.
 
 ## Functions
 
@@ -19,7 +28,7 @@ This package provides a few general functions that are sometimes useful.
 - `fun.Const[A any, B any](b B)func(A)B`
 - `fun.ConstUnit[B any](b B) func(Unit)B`
 - `fun.ConstNoArg[B any](b B) func() B` - ConstNoArg creates a function that will return the specified value.
-- `fun.Delay[A any](a A) func() A` -  Delay returns a function that will return the value.
+- `fun.Delay[A any](a A) func() A` - Delay returns a function that will return the value.
 - `fun.Identity[A any](a A) A` - Identity function returns the given value unchanged.
 - `fun.Swap[A any, B any, C any](f func(a A)func(b B)C) func(b B)func(a A)C`
 - `fun.Curry[A any, B any, C any](f func(a A, b B)C) func(a A)func(b B)C`
@@ -117,6 +126,7 @@ This style is also not very friendly to function composition. If you need to pas
 The composition of two consequtive calculations is fundamental to programming. There is even a mathematical model that studies the properties of composition of calculations.
 
 From error handling perspective `IO[A]` provides the following features:
+
 - encapsulates a calculation that may return `A` or might fail;
 - execution through `io.UnsafeRunSync`, `io.RunSync`, or `io.ObtainResult` recovers panics that cross that run boundary and returns them as errors;
 - provides convenient mechanisms for composing consequtive calculations (`io.Map`, `io.FlatMap`).
@@ -126,6 +136,7 @@ From error handling perspective `IO[A]` provides the following features:
 ### Interaction with outer world vs simple (pure) functions/calculations.
 
 From compiler's perspective things that happen in the program can be either ordinary pure computations or modification of some state outside of the function. Pure computation is special, because it has the following benefits:
+
 - one can execute the same computation and receive exactly the same results;
 - except obtaining the result of the computation nothing is changed elsewhere;
 - it's much easier to reason about what is happening in the program made of pure computations (because nothing is happening apart from the computation itself).
@@ -177,6 +188,7 @@ To and from `GoResult` - allows to handle both good value and an error:
 - `io.UnfoldGoResult[A any](iogr IO[GoResult[A]]) IO[A]` - UnfoldGoResult represents GoResult back to ordinary IO.
 
 Sometimes there is a need to perform some sideeffectful operation on a value. This can be achieved with `Consumer[A]`.
+
 ```go
 // Consumer can receive an instance of A and perform some operation on it.
 type Consumer[A any] func(A) IOUnit
@@ -214,18 +226,23 @@ In the current composition architecture, `MapErr`, `FlatMap`, and `Fold` may sta
 ## Resources
 
 Resource is a thing that could only be used inside brackets - acquire/release.
+
 ```go
 type Resource[A any]
 ```
+
 The only allowed way to use the resource is through `Use`:
+
 - `resource.Use[A any, B any](res Resource[A], f func(A) io.IO[B]) io.IO[B]` - Use is a only way to access the resource instance. It guarantees that the resource instance will be closed after use regardless of the failure/success result.
 
 `ClosableIO` is a simple resource that implements Close method:
+
 ```go
 type ClosableIO interface {
 	Close() io.IOUnit
 }
 ```
+
 - `resource.FromClosableIO[A ClosableIO](ioa io.IO[A]) Resource[A]` - FromClosableIO constructs a new resource from some value that itself supports method Close.
 - `resource.BoundedExecutionContextResource(size int, queueLimit int) Resource[io.ExecutionContext]` - BoundedExecutionContextResource returns a resource that is a bounded execution context.
 - `resource.Fail[A any](err error) Resource[A]` - Fail creates a resource that will fail during acquisition.
@@ -291,7 +308,7 @@ There are two kinds of execution contexts - `UnboundedExecutionContext` and `Bou
 ### Running things in parallel
 
 - `io.Parallel[A any](ios []IO[A]) IO[[]A]` - Parallel starts the given IOs in Go routines and waits for all results.
-- `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` -  ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
+- `io.ParallelInExecutionContext[A any](ec ExecutionContext) func(ios []IO[A]) IO[[]A]` - ParallelInExecutionContext starts the given IOs in the provided `ExecutionContext` and waits for all results.
 - `io.ConcurrentlyFirst[A any](ios []IO[A]) IO[A]` - Runs all IOs in parallel and returns the first success or failure. Losing computations are not canceled; they continue independently, and their result publication does not block after the winner returns.
 - `io.PairSequentially[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairSequentially runs two IOs sequentially and returns both results.
 - `io.PairParallel[A any, B any](ioa IO[A], iob IO[B]) IO[fun.Pair[A, B]]` - PairParallel runs two IOs in parallel and returns both results.
@@ -362,7 +379,7 @@ Important functions that allow to implement stateful stream transformation:
 
 - `stream.StateFlatMap[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]]) Stream[B]` - consumes each element of the stream together with some state. The state is updated afterwards.
 - `stream.StateFlatMapWithFinish[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]], onFinish func(s S) Stream[B]) Stream[B]` - when the original stream finishes, there still might be some important state. This function invokes `onFinish` with the residual state value and appends the returned stream at the end.
-- `stream.StateFlatMapWithFinishAndFailureHandling[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]], onFinish func(s S) Stream[B], onFailure func(s S, err error) Stream[B]) Stream[B]` -  StateFlatMapWithFinishAndFailureHandling maintains state along the way. When the source stream finishes, it invokes onFinish with the last state. If there is an error during stream evaluation, onFailure is invoked. NB! onFinish is not invoked in case of failure.
+- `stream.StateFlatMapWithFinishAndFailureHandling[A any, B any, S any](stm Stream[A], zero S, f func(a A, s S) io.IO[fun.Pair[S, Stream[B]]], onFinish func(s S) Stream[B], onFailure func(s S, err error) Stream[B]) Stream[B]` - StateFlatMapWithFinishAndFailureHandling maintains state along the way. When the source stream finishes, it invokes onFinish with the last state. If there is an error during stream evaluation, onFailure is invoked. NB! onFinish is not invoked in case of failure.
 - `stream.GroupBy[A any, K comparable](stm Stream[A], key func(A) K) Stream[fun.Pair[K, []A]]` - GroupBy collects group by a user-provided key. Whenever a new key is encountered, the previous group is emitted. When the original stream finishes, the last group is emitted.
 - `stream.GroupByEval[A any, K comparable](stm Stream[A], keyIO func(A) io.IO[K]) Stream[fun.Pair[K, []A]]` - GroupByEval collects group by a user-provided key (which is evaluated as IO). Whenever a new key is encountered, the previous group is emitted. When the original stream finishes, the last group is emitted.
 - `stream.FoldLeftEval[A any, B any](stm Stream[A], zero B, combine func(B, A) io.IO[B]) io.IO[B]` - FoldLeftEval aggregates stream in a more simple way than StateFlatMap.
@@ -387,6 +404,7 @@ type StreamEvent[A any] struct {
 	Value      A
 }
 ```
+
 - `stream.ToStreamEvent[A any](stm Stream[A]) Stream[StreamEvent[A]]` - ToStreamEvent converts the given stream to a stream of StreamEvents. Each normal element will become a StreamEvent with data. On a failure or finish a single element is returned before the end of the stream.
 
 ### Execution
@@ -495,7 +513,7 @@ Some utilities that are convenient when working with slices.
 - `slice.GroupBy[A any, K comparable](as []A, f func(A)K) (res map[K][]A)` - GroupBy groups elements by a function that returns a key.
 - `slice.GroupByMap[A any, K comparable, B any](as []A, f func(A) K, g func([]A) B) (res map[K]B)` - GroupByMap is a convenience function that groups and then maps the subslices.
 - `slice.GroupByMapCount[A any, K comparable](as []A, f func(A) K) (res map[K]int)` GroupByMapCount for each key counts how often it is seen.
-- `slice.Sliding[A any](as []A, size int, step int) (res [][]A)` - Sliding splits the provided slice into windows.  Each window will have the given size.  The first window starts from offset = 0. Each consequtive window starts at prev_offset + step. Last window might very well be shorter.
+- `slice.Sliding[A any](as []A, size int, step int) (res [][]A)` - Sliding splits the provided slice into windows. Each window will have the given size. The first window starts from offset = 0. Each consequtive window starts at prev_offset + step. Last window might very well be shorter.
 - `slice.Grouped[A any](as []A, size int) (res [][]A)` - Grouped partitions the slice into groups of the given size. Last partition might be smaller.
 - `slice.Len[A any](as []A) int` Len returns the length of the slice. This is a normal function that can be passed around unlike the built-in `len`.
 - `slice.ForEach[A any](as []A, f func(a A) )` - ForEach executes the given function for each element of the slice.
@@ -503,15 +521,15 @@ Some utilities that are convenient when working with slices.
 - `slice.ZipWithIndex[A any](as []A) (res []fun.Pair[int, A])` - ZipWithIndex prepends the index to each element.
 - `slice.IndexOf[A comparable](as []A, a A) int` - IndexOf returns the index of the first occurrence of a in the slice or -1 if not found.
 - `slice.Take[A any](as []A, n int) []A` - Take returns at most n elements.
-- `slice.Drop[A any](as []A, n int) []A` - Drop removes initial n elements. 
+- `slice.Drop[A any](as []A, n int) []A` - Drop removes initial n elements.
 - `slice.Reverse[A any](as []A) (res []A)` - Reverse creates a new slice with elements reversed.
 - `slice.HeadTail[A any](as []A) (A, []A)` - HeadTail returns head, tail. Panics with ErrHeadOfEmptySlice when slice is empty.
 - `slice.Head[A any](as []A) (a A)` - Head returns head of the slice. Panics with `ErrHeadOfEmptySlice` when slice is empty.
 - `slice.Tail[A any](as []A) []A` - Tail returns tail of the slice.
 - `slice.Distinct[A comparable](as []A) (res []A)` - Distinct returns only unique elements.
 - `slice.Intersperse[A any](as []A, sep A) (res []A)` - Intersperse inserts a separator sep between each element in A.
-- `slice.BuildIndex[A any, K comparable](as []A, key func(A) K) (res map[K][]A)` -  BuildIndex creates an index of elements in slice by a user-defined key function.
-- `slice.BuildUniqueIndex[A any, K comparable](as []A, key func(A) K) (res map[K]A)` -  BuildUniqueIndex creates an index assuming that all keys are unique. If that is not true, map will contain the last element for the same key. Consider using BuildIndex.
+- `slice.BuildIndex[A any, K comparable](as []A, key func(A) K) (res map[K][]A)` - BuildIndex creates an index of elements in slice by a user-defined key function.
+- `slice.BuildUniqueIndex[A any, K comparable](as []A, key func(A) K) (res map[K]A)` - BuildUniqueIndex creates an index assuming that all keys are unique. If that is not true, map will contain the last element for the same key. Consider using BuildIndex.
 
 We can convert a slice to a set:
 
@@ -536,15 +554,15 @@ Numbers support numerical operations. In generics this require defining an inter
 ```go
 // Number is a generic number interface that covers all Go number types.
 type Number interface {
-	int | int8 | int16 | int32 | int64 | 
-	uint | uint8 | uint16 | uint32 | uint64 | 
+	int | int8 | int16 | int32 | int64 |
+	uint | uint8 | uint16 | uint32 | uint64 |
 	float32 | float64 |
 	complex64 | complex128
 }
 ```
 
 Having this definition we now can aggregate slices of numbers:
- 
+
 - `slice.Sum[N fun.Number](ns []N) (sum N)` - sums numbers.
 - `slice.Range(from, to int) (res []int)` - Range starts at `from` and progresses until `to` exclusive.
 - `slice.Nats(n int) []int` - Nats return slice `[]int{1, 2, ..., n}`.
@@ -562,13 +580,14 @@ Some helper functions to deal with `map[K]V`.
 
 There is a small benchmark of stream sum that can give some idea of what performance one might expect.
 
-
 In all benchmarks the same computation (`sum([1,10000]`) is performed using 3 different mechanisms:
+
 - `BenchmarkForSum` - a simple for-loop;
 - `BenchmarkSliceSum` - a slice operation `Sum`;
 - `BenchmarkStreamSum` - a stream of `int`s encapsulated in `io.IO[int]` and then `stream.Sum`.
 
 Here is the result of a run on a computer:
+
 ```
 ✗ go test -benchmem -run=^$ -bench ^Benchmark ./stream
 goos: linux
@@ -583,6 +602,7 @@ ok      github.com/primetalk/goio/stream        5.224s
 ```
 
 The following conclusions could be inferred:
+
 1. There are certain tasks that might benefit from lower-level implementation ;).
 2. Slice operation is slower than `for` by ~20%.
 3. Handling a single stream element takes ~1.4 mks. There are ~31 allocations per single stream element. And memory overhead is ~1024 bytes per stream element.
@@ -592,6 +612,7 @@ Hence, it seems to be easy to decide, whether stream-based approach will fit a p
 For example, if each element is a json structure of size 10K that is received via 1G internet connection, it's transmission would take 10 mks. So stream processing will add ~10% overhead to these numbers. These numbers might be a good boundary for consideration. If element size is greater and processing is more complex, then stream overhead becomes negligible.
 
 As a reminder, here are some benefits of the stream processing:
+
 1. Zero boilerplate error-handling.
 2. Composable and reusable functions/modules.
 3. Zero debug effort (in case of following best practices of functional programming - immutability, var-free code).

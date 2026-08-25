@@ -1,81 +1,165 @@
-name: Go  # The name of the workflow that will appear on Github
+name: Go
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
-  # Allows you to run this workflow manually from the Actions tab
+    branches: [master]
   workflow_dispatch:
 
+concurrency:
+  group: go-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
-  contents: write # needed for updating badge with coverage
+  contents: read
 
 jobs:
-
-  build:
+  test:
+    name: Test (${{ matrix.support }}, ${{ matrix.os }}, Go ${{ matrix.go }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        go: [1.18, 1.26]
+        include:
+          - support: minimum
+            os: ubuntu-latest
+            go: "1.26.x"
+          - support: minimum
+            os: windows-latest
+            go: "1.26.x"
+          - support: minimum
+            os: macos-latest
+            go: "1.26.x"
+          - support: current-stable
+            os: ubuntu-latest
+            go: "1.27.x"
+          - support: current-stable
+            os: windows-latest
+            go: "1.27.x"
+          - support: current-stable
+            os: macos-latest
+            go: "1.27.x"
     steps:
-    - name: Check out PR branch
-      uses: actions/checkout@v5
-      with:
-        ref: ${{ github.head_ref || github.ref_name }}
-        fetch-depth: 0
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-    - name: Set up Go ${{ matrix.go }}
-      uses: actions/setup-go@v6
-      with:
-        go-version: ${{ matrix.go }}
+      - name: Set up Go ${{ matrix.go }}
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          cache: true
 
-    - name: Build
-      run: go build -v ./...
+      - name: Test
+        run: go test -v ./...
 
-    - name: Test
-      run: |
-        go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
-        go tool cover -func coverage.out -o coverage.out  # Replaces coverage.out with the analysis of coverage.out
+  race:
+    name: Race (current-stable, Linux, Go 1.27)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-    - name: Go Coverage Badge
-      uses: tj-actions/coverage-badge-go@v3
-      if: ${{ runner.os == 'Linux' && matrix.go == '1.18' }} # Runs this on only one of the ci builds.
-      with:
-        green: 80
-        filename: coverage.out
+      - name: Set up Go 1.27
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.x"
+          cache: true
 
-    - name: Verify Changed files
-      uses: tj-actions/verify-changed-files@v16
-      id: verify-changed-files
-      with:
-        files: README.md
+      - name: Test with race detector
+        run: go test -race ./...
 
-    - name: Commit changes
-      if: steps.verify-changed-files.outputs.files_changed == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add README.md
-        git commit -m "chore: Updated coverage badge."
+  coverage:
+    name: Coverage (minimum, Linux, Go 1.26)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
-    - name: Push changes
-      if: steps.verify-changed-files.outputs.files_changed == 'true'
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ github.token }}
-        branch: ${{ github.head_ref || github.ref_name }}    # - uses: stefanzweifel/git-auto-commit-action@v4
-    #   id: auto-commit-action
-    #   with:
-    #     commit_message: Apply Code Coverage Badge
-    #     skip_fetch: true
-    #     skip_checkout: true
-    #     file_pattern: ./README.md
+      - name: Set up Go 1.26
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.26.x"
+          cache: true
 
-    # - name: Push Changes
-    #   if: steps.auto-commit-action.outputs.changes_detected == 'true'
-    #   uses: ad-m/github-push-action@master
-    #   with:
-    #     github_token: ${{ github.token }}
-    #     branch: ${{ github.ref }}
+      - name: Generate coverage profile
+        run: |
+          go test -v -cover ./... -coverprofile coverage.out -coverpkg ./...
+          go tool cover -func=coverage.out -o=coverage-summary.out
+
+      - name: Upload coverage summary
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-summary
+          path: coverage-summary.out
+          if-no-files-found: error
+          retention-days: 1
+
+  coverage-badge:
+    name: Update coverage badge
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [test, race, coverage]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out tested revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Download coverage summary
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-summary
+
+      - name: Update coverage badge
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          summary = Path("coverage-summary.out").read_text()
+          match = re.search(
+              r"^total:\s+\(statements\)\s+([0-9]+(?:\.[0-9]+)?)%$",
+              summary,
+              re.MULTILINE,
+          )
+          if match is None:
+              raise SystemExit("coverage-summary.out has no total statement coverage")
+
+          value = match.group(1)
+          percentage = float(value)
+          color = "brightgreen" if percentage >= 80 else "yellow" if percentage >= 30 else "red"
+          badge = f"![Coverage](https://img.shields.io/badge/Coverage-{value}%25-{color})"
+
+          readme_path = Path("README.md")
+          readme = readme_path.read_text()
+          updated, replacements = re.subn(
+              r"!\[Coverage\]\(https://img\.shields\.io/badge/Coverage-[^)]+\)",
+              badge,
+              readme,
+          )
+          if replacements != 1:
+              raise SystemExit(f"expected one coverage badge, found {replacements}")
+          readme_path.write_text(updated)
+          PY
+
+      - name: Commit and push badge if changed
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "Coverage badge is current."
+            exit 0
+          fi
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add README.md
+          git commit -m "chore: update coverage badge"
+          git push origin HEAD:master
