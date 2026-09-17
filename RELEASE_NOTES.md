@@ -1,6 +1,6 @@
 # Release Notes
 
-## v0.5.0 (planned)
+## v0.5.0-beta.1 (2026-09-17)
 
 ### Compatibility
 
@@ -17,6 +17,8 @@
 - Retains all existing package-level combinators as supported APIs.
 
 The methods are thin delegates to the existing combinators and preserve their laziness, error handling, stream state, and resource-release behavior.
+
+This prerelease is intended to gather experience with the method names and chaining style before the stable v0.5.0 API is finalized.
 
 ## v0.4.0 (2026-09-17)
 
