@@ -1,3 +1,23 @@
+# Migrating to v0.5.0
+
+## Go 1.27 requirement
+
+`goio` v0.5.0 raises the module's minimum Go version from Go 1.26 to Go 1.27. Projects that must remain on Go 1.26 can continue using the v0.4.x release line.
+
+Generic methods are additive. Existing calls to package functions remain supported, so adopting the fluent method syntax can be incremental:
+
+```go
+// Existing form.
+mapped := io.Map(source, transform)
+
+// Equivalent Go 1.27 method form.
+mapped := source.Map(transform)
+```
+
+The method implementations delegate to the established package combinators and do not introduce new runtime semantics.
+
+---
+
 # Migrating to v0.4.0
 
 ## Compatibility change
