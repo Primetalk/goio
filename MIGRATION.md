@@ -2,9 +2,9 @@
 
 ## Compatibility change
 
-`goio` v0.4.0 raises the module's minimum Go version from Go 1.18 to Go 1.26. This is an intentional compatibility-breaking change. It does not change exported Go API signatures or effect-runtime semantics.
+`goio` v0.4.0 raises the module's minimum Go version from Go 1.18 to Go 1.26. This is an intentional compatibility-breaking change. The release also renames `option.Fold` to `option.Match`; other source changes primarily stabilize existing effect-runtime behavior.
 
-The maintained release line supports the two most recent stable Go release families. At the time of the v0.4.0 decision, those families are Go 1.26 and Go 1.27.
+The v0.4.x release line supports Go 1.26 and Go 1.27. It is the final release line supporting Go 1.26; development after v0.4.0 targets Go 1.27 so that goio can adopt generic methods.
 
 ## Upgrade steps
 
@@ -34,10 +34,10 @@ Projects that cannot yet move from Go 1.18 through Go 1.25 can remain on the las
 go get github.com/primetalk/goio@v0.3.7
 ```
 
-The v0.3.7 tag remains available, but the maintained release line moves to the rolling support policy described above.
+The v0.3.7 tag remains available for projects that cannot yet adopt Go 1.26.
 
-## Future minimum-version changes
+## Development after v0.4.0
 
-When a new stable Go family causes the older supported family to leave the two-release window, the next planned `goio` release may raise its minimum version. Each increase must be explicit in `go.mod`, CI, release notes, and migration guidance; it is not performed automatically by an unpinned `stable` CI alias.
+The next planned goio release raises its minimum version to Go 1.27. The increase will be explicit in `go.mod`, CI, release notes, and migration guidance; it is not performed automatically by an unpinned `stable` CI alias.
 
 Dependency upgrades and source simplifications enabled by Go 1.26 are intentionally separate follow-up changes so they can be reviewed and rolled back independently.
