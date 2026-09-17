@@ -15,7 +15,7 @@ The design is inspired by awesome Scala libraries [cats-effect](https://typeleve
 
 ## Go compatibility
 
-`goio` v0.4.0 requires Go 1.26 or newer. Maintained releases follow a rolling policy that supports the two most recent stable Go release families. With Go 1.27 as the current stable release, CI validates Go 1.26 and Go 1.27 on Linux, Windows, and macOS, and runs the race detector on Go 1.27 Linux.
+`goio` v0.4.0 requires Go 1.26 or newer and is the final release line supporting Go 1.26. CI validates v0.4.0 with Go 1.26 and Go 1.27 on Linux, Windows, and macOS, and runs the race detector on Go 1.27 Linux. Development after v0.4.0 targets Go 1.27 so that goio can adopt generic methods.
 
 Version v0.3.7 remains available for users that must retain the former Go 1.18 module floor. See [MIGRATION.md](MIGRATION.md) for upgrade steps and [RELEASE_NOTES.md](RELEASE_NOTES.md) for the compatibility notice.
 
