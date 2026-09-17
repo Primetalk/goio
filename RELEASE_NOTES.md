@@ -1,5 +1,23 @@
 # Release Notes
 
+## v0.5.0 (planned)
+
+### Compatibility
+
+- Raises the minimum supported Go version from Go 1.26 to Go 1.27.
+- Keeps v0.4.x available as the final Go 1.26-compatible release line.
+
+### Generic methods
+
+- Adds `Map`, `FlatMap`, and `Fold` methods to `io.IO`.
+- Adds `Map`, `FlatMap`, and `Through` methods to `stream.Stream`.
+- Adds `Map`, `FlatMap`, and `Use` methods to `resource.Resource`.
+- Adds `Map`, `FlatMap`, and `Match` methods to `option.Option`.
+- Adds `Fold` to `either.Either`.
+- Retains all existing package-level combinators as supported APIs.
+
+The methods are thin delegates to the existing combinators and preserve their laziness, error handling, stream state, and resource-release behavior.
+
 ## v0.4.0 (2026-09-17)
 
 ### Compatibility

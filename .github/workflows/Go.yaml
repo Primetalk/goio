@@ -16,29 +16,17 @@ permissions:
 
 jobs:
   test:
-    name: Test (${{ matrix.support }}, ${{ matrix.os }}, Go ${{ matrix.go }})
+    name: Test (${{ matrix.os }}, Go ${{ matrix.go }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - support: minimum
-            os: ubuntu-latest
-            go: "1.26.x"
-          - support: minimum
-            os: windows-latest
-            go: "1.26.x"
-          - support: minimum
-            os: macos-latest
-            go: "1.26.x"
-          - support: current-stable
-            os: ubuntu-latest
+          - os: ubuntu-latest
             go: "1.27.x"
-          - support: current-stable
-            os: windows-latest
+          - os: windows-latest
             go: "1.27.x"
-          - support: current-stable
-            os: macos-latest
+          - os: macos-latest
             go: "1.27.x"
     steps:
       - name: Check out repository
@@ -74,7 +62,7 @@ jobs:
         run: go test -race ./...
 
   coverage:
-    name: Coverage (minimum, Linux, Go 1.26)
+    name: Coverage (minimum, Linux, Go 1.27)
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -82,10 +70,10 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up Go 1.26
+      - name: Set up Go 1.27
         uses: actions/setup-go@v7
         with:
-          go-version: "1.26.x"
+          go-version: "1.27.x"
           cache: true
 
       - name: Generate coverage profile
