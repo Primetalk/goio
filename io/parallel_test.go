@@ -44,17 +44,40 @@ func TestParallelBound(t *testing.T) {
 }
 
 func TestPairParallelAndRunAlso(t *testing.T) {
-	ioA := io.RunAlso(
-		io.SleepA(100*time.Millisecond, "a"),
-		io.SleepA(100*time.Millisecond, fun.Unit1),
-	)
-	measured := io.MeasureDuration(ioA)
-	results, err := io.UnsafeRunSync(measured)
-	assert.Equal(t, err, nil)
-	assert.Equal(t, "a", results.V1)
-	duration := results.V2
-	now := time.Now()
-	assert.WithinDuration(t, now.Add(duration), now, 120*time.Millisecond)
+	for _, first := range []string{"main", "other"} {
+		t.Run(first+" finishes first", func(t *testing.T) {
+			mainStarted, otherStarted := make(chan struct{}), make(chan struct{})
+			mainRelease, otherRelease := make(chan struct{}), make(chan struct{})
+			defer releaseSignal(mainRelease)
+			defer releaseSignal(otherRelease)
+			mainFinished, otherFinished := make(chan struct{}), make(chan struct{})
+			main := controlledResult(mainStarted, mainRelease, mainFinished, "a", nil)
+			other := controlledResult(otherStarted, otherRelease, otherFinished, fun.Unit1, nil)
+
+			result := runIO(io.RunAlso(main, other))
+			awaitSignal(t, mainStarted, "main effect to start")
+			awaitSignal(t, otherStarted, "other effect to start concurrently")
+
+			if first == "main" {
+				releaseSignal(mainRelease)
+				awaitSignal(t, mainFinished, "main effect to finish")
+			} else {
+				releaseSignal(otherRelease)
+				awaitSignal(t, otherFinished, "other effect to finish")
+			}
+			select {
+			case <-result:
+				t.Fatal("RunAlso returned before both effects finished")
+			default:
+			}
+
+			releaseSignal(mainRelease)
+			releaseSignal(otherRelease)
+			res := awaitRunResult(t, result, "both effects to complete")
+			assert.NoError(t, res.Error)
+			assert.Equal(t, "a", res.Value)
+		})
+	}
 }
 
 func TestPairSequentially(t *testing.T) {
